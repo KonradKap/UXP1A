@@ -3,7 +3,7 @@
 TARGET = uxpbin
 CC = gcc
 CUR_DIR = $(shell pwd)
-CFLAGS = --std=c99 -Wall -Wextra -O0
+CFLAGS = --std=c99 -Wall -Wextra -O0 -g
 INCLUDES = -I"$(CUR_DIR)/src" -I"$(CUR_DIR)/tests"
 LINKFLAGS = --std=c99
 APPLFLAGS =
@@ -16,11 +16,9 @@ tests_SOURCES = $(shell find tests/ src/ -name *.c -not -name main.c)
 tests_OBJECTS = $(tests_SOURCES:%.c=bin/%.o)
 tests_EXECUTABLE = bin/tests_bin
 
-DEPS := $(app_OBJECTS:.o=.d) $(tests_OBJECTS:.o=.d)
+DEPS := $(shell find . -name *.d)
 
 all: directories $(TARGET) tests
-
--include $(DEPS)
 
 directories:
 	@mkdir -p bin
@@ -52,5 +50,7 @@ clean:
 
 cleaner: clean
 	@rm $(TARGET) $(tests_EXECUTABLE) || true
+
+-include $(DEPS)
 
 .PHONY: clean cleaner tests directories run

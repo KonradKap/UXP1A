@@ -1,8 +1,12 @@
 #include <stdio.h>
 
-#include "hello_world.h"
+#include "utility.h"
+#include "tuple/tuple.h"
 
 int main(int argc, char **argv) {
+    IGNORED(argc);
+    IGNORED(argv);
+
+
     printf("Hello World");
-    printf("%s", hello_world());
 }
