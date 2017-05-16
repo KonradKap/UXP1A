@@ -11,7 +11,7 @@ typedef struct tuple_element {
         int i;
         float f;
         struct {
-            unsigned char length;
+            unsigned int length;
             char *string;
         } s;
     } data;

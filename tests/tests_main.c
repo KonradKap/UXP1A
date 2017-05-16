@@ -4,6 +4,7 @@
 
 int main() {
     SRunner *test_runner = srunner_create(NULL);
+
     srunner_add_suite(test_runner, tuple_suite());
 
     srunner_run_all(test_runner, CK_NORMAL);

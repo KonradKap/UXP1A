@@ -1,11 +1,12 @@
 #ifndef TUPLE_TUPLE_H
 #define TUPLE_TUPLE_H
 
-#define TUPLE_MAX_SIZE 252
-
 #define TUPLE_INT_FORMAT 'i'
 #define TUPLE_FLOAT_FORMAT 'f'
 #define TUPLE_STRING_FORMAT 's'
+
+#define TUPLE_E_OUT_OF_RANGE -1
+#define TUPLE_E_INVALID_TYPE -2
 
 struct tuple_element;
 
@@ -16,5 +17,14 @@ typedef struct tuple {
 
 tuple *tuple_make(char *format, ...);
 void tuple_free(tuple *obj);
+
+int tuple_typeof(tuple *obj, unsigned position);
+
+int tuple_get_int(tuple *obj, unsigned position, int *output);
+int tuple_get_float(tuple *obj, unsigned position, float *output);
+int tuple_get_string(tuple *obj, unsigned position, char *output);
+
+int tuple_to_buffer(tuple *obj, void *buffer, unsigned size);
+tuple *tuple_from_buffer(void *buffer, unsigned size);
 
 #endif //TUPLE_TUPLE_H
