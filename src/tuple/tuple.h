@@ -7,6 +7,7 @@
 
 #define TUPLE_E_OUT_OF_RANGE -1
 #define TUPLE_E_INVALID_TYPE -2
+#define TUPLE_E_BAD_SIZE -3
 
 struct tuple_element;
 
@@ -24,7 +25,7 @@ int tuple_get_int(tuple *obj, unsigned position, int *output);
 int tuple_get_float(tuple *obj, unsigned position, float *output);
 int tuple_get_string(tuple *obj, unsigned position, char *output);
 
-int tuple_to_buffer(tuple *obj, void *buffer, unsigned size);
-tuple *tuple_from_buffer(void *buffer, unsigned size);
+int tuple_to_buffer(tuple *obj, char *buffer, int size);
+tuple *tuple_from_buffer(char *buffer);
 
 #endif //TUPLE_TUPLE_H

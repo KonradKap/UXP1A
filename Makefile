@@ -16,15 +16,17 @@ tests_SOURCES = $(shell find tests/ src/ -name *.c -not -name main.c)
 tests_OBJECTS = $(tests_SOURCES:%.c=bin/%.o)
 tests_EXECUTABLE = bin/tests_bin
 
-DEPS := $(shell find . -name *.d)
+DEPS := $(app_OBJECTS:.o=.d) $(tests_OBJECTS:.o=.d)
 
 all: directories $(TARGET) tests
+
+-include $(DEPS)
 
 directories:
 	@mkdir -p bin
 
 bin/%.d : %.c
-	@$(CC) $(CFLAGS) -MM -MT '$(patsubst %.c,bin/%.o,$<)' $< -MF $@ $(INCLUDES)
+	@$(CC) $(CFLAGS) -MM -MT '$(patsubst %.c,bin/%.o,$<)' $< -MF $@ $(INCLUDES) 2>/dev/null
 
 bin/%.o : %.c
 	@mkdir -p $(@D)

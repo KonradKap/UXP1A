@@ -98,17 +98,77 @@ int tuple_get_string(tuple *obj, unsigned position, char *output) {
     return is_valid;
 }
 
-int tuple_to_buffer(tuple *obj, void *buffer, unsigned size) {
-    IGNORED(obj);
-    IGNORED(buffer);
-    IGNORED(size);
-    assert(0);
-    return -1;
+int tuple_to_buffer(tuple *obj, char *buffer, int size) {
+    if (size < (int)sizeof(unsigned))
+        return TUPLE_E_BAD_SIZE;
+    *(unsigned *)buffer = obj->nelements;
+    buffer += sizeof(unsigned);
+    size -= sizeof(unsigned);
+
+    for (unsigned i = 0; i < obj->nelements && size > 0; ++i) {
+        if (size < (int)sizeof(char))
+            return TUPLE_E_BAD_SIZE;
+        *(unsigned char *)buffer = obj->elements[i].type;
+        buffer += sizeof(char);
+        size -= sizeof(char);
+        if (size <= 0)
+            return TUPLE_E_BAD_SIZE;
+        switch (obj->elements[i].type) {
+            case INT_TYPE:
+                if (size < (int)sizeof(int))
+                    return TUPLE_E_BAD_SIZE;
+                *(int *)buffer = obj->elements[i].data.i;
+                buffer += sizeof(int);
+                size -= sizeof(int);
+                break;
+            case FLOAT_TYPE:
+                if (size < (int)sizeof(float))
+                    return TUPLE_E_BAD_SIZE;
+                *(float *)buffer = obj->elements[i].data.f;
+                buffer += sizeof(float);
+                size -= sizeof(float);
+                break;
+            case STRING_TYPE:
+                if (size < (int)obj->elements[i].data.s.length)
+                    return TUPLE_E_BAD_SIZE;
+                strcpy(buffer, obj->elements[i].data.s.string);
+                buffer += obj->elements[i].data.s.length + 1;
+                size -= obj->elements[i].data.s.length;
+                break;
+            default:
+                return TUPLE_E_INVALID_TYPE;
+        }
+    }
+    return 0;
 }
 
-tuple *tuple_from_buffer(void *buffer, unsigned size) {
-    IGNORED(buffer);
-    IGNORED(size);
-    assert(0);
-    return NULL;
+tuple *tuple_from_buffer(char *buffer) {
+    tuple *obj = malloc(sizeof(tuple));
+    obj->nelements = *(unsigned *)buffer;
+    buffer += sizeof(unsigned);
+    obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
+    for (unsigned i = 0; i < obj->nelements; ++i) {
+        obj->elements[i].type = *buffer++;
+        switch(obj->elements[i].type) {
+            case INT_TYPE:
+                obj->elements[i].data.i = *(int *)buffer;
+                buffer += sizeof(int);
+                break;
+            case FLOAT_TYPE:
+                obj->elements[i].data.f = *(float *)buffer;
+                buffer += sizeof(float);
+                break;
+            case STRING_TYPE:
+                obj->elements[i].data.s.length = strlen(buffer);
+                obj->elements[i].data.s.string = malloc(obj->elements[i].data.s.length + 1);
+                strcpy(obj->elements[i].data.s.string, buffer);
+                buffer += obj->elements[i].data.s.length + 1;
+                break;
+            default:
+                //TODO: rollback and free allocated memory
+                //and return NULL
+                break;
+        }
+    }
+    return obj;
 }

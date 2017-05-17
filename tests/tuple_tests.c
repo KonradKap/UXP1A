@@ -74,6 +74,36 @@ START_TEST(tuple_get_test2) {
 }
 END_TEST
 
+START_TEST(tuple_buffer_test1) {
+    tuple *base = tuple_make("i", 12);
+    char buffer[256];
+    tuple_to_buffer(base, buffer, 256);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, base->nelements);
+    ck_assert_int_eq(got->elements[0].data.i, 12);
+}
+END_TEST
+
+START_TEST(tuple_buffer_test2) {
+    tuple *base = tuple_make("sis", "jp2gmd", 1, "UXP1A");
+    char buffer[256];
+    tuple_to_buffer(base, buffer, 256);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, base->nelements);
+    ck_assert_str_eq(got->elements[0].data.s.string, "jp2gmd");
+    ck_assert_int_eq(got->elements[1].data.i, 1);
+    ck_assert_str_eq(got->elements[2].data.s.string, "UXP1A");
+}
+END_TEST
+
+START_TEST(tuple_buffer_test3) {
+    tuple *base = tuple_make("s", "A very long string that will surely exceed buffer's maximum size");
+    char buffer[16];
+    int result = tuple_to_buffer(base, buffer, 16);
+    ck_assert_int_eq(result, TUPLE_E_BAD_SIZE);
+}
+END_TEST
+
 Suite *tuple_suite() {
     Suite *suite = suite_create("tuple tests");
     TCase *test_case;
@@ -86,6 +116,10 @@ Suite *tuple_suite() {
     tests_execute(suite, test_case, tuple_typeof_test1);
     tests_execute(suite, test_case, tuple_get_test1);
     tests_execute(suite, test_case, tuple_get_test2);
+
+    tests_execute(suite, test_case, tuple_buffer_test1);
+    tests_execute(suite, test_case, tuple_buffer_test2);
+    tests_execute(suite, test_case, tuple_buffer_test3);
 
     return suite;
 }
