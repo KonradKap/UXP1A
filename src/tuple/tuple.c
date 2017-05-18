@@ -8,6 +8,21 @@
 #include "tuple/tuple_element.h"
 #include "utility.h"
 
+#define write_to_buffer(what, buffer, size, type)\
+    do{\
+        if ((size) < (int)(sizeof((what))))\
+            return TUPLE_E_BAD_SIZE;\
+        *(type *)(buffer) = (what);\
+        (buffer) += sizeof((what));\
+        (size) -= sizeof((what));\
+    } while(0)
+
+#define read_from_buffer(what, buffer, size, type)\
+    do {\
+        (what) = *(type *)(buffer);\
+        (buffer) += sizeof((what));\
+    } while (0)
+
 static unsigned parse_format(va_list *list, tuple *obj, char format, int index) {
     switch (format) {
         case TUPLE_INT_FORMAT:
@@ -31,30 +46,39 @@ static unsigned parse_format(va_list *list, tuple *obj, char format, int index) 
     }
 }
 
-static unsigned count_size(char *format) {
+static unsigned count_size(const char *format) {
     unsigned ret = 0;
     char c;
     while((c = *format++)) {
-        if (c == TUPLE_INT_FORMAT || c == TUPLE_FLOAT_FORMAT || c == TUPLE_STRING_FORMAT)
+        if (c == TUPLE_INT_FORMAT
+            || c == TUPLE_FLOAT_FORMAT
+            || c == TUPLE_STRING_FORMAT)
             ++ret;
     }
     return ret;
 }
 
-static int check_validity(tuple *obj, unsigned position, int type) {
+static int check_validity(const tuple *obj, unsigned position, int type) {
     if (obj->nelements <= position)
         return TUPLE_E_OUT_OF_RANGE;
-    if (obj->elements[position].type != type)
+    if ((obj->elements[position].type & TYPE_MASK) != (type & TYPE_MASK))
         return TUPLE_E_INVALID_TYPE;
     return 0;
 }
 
-tuple *tuple_make(char *format, ...) {
+static void rollback_free(tuple *obj, unsigned index) {
+    for (unsigned i = 0; i < index; ++i) {
+        if ((obj->elements[i].type & TYPE_MASK) == STRING_TYPE)
+            free(obj->elements[i].data.s.string);
+    }
+    free(obj->elements);
+    free(obj);
+}
+
+tuple *tuple_make(const char *format, ...) {
     va_list list;
     va_start(list, format);
-    tuple *obj = malloc(sizeof(tuple));
-    obj->nelements = count_size(format);
-    obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
+    tuple *obj = tuple_make_nelements(count_size(format));
     char c, i = 0;
     while((c = *format++)) {
         i += parse_format(&list, obj, c, i);
@@ -62,71 +86,108 @@ tuple *tuple_make(char *format, ...) {
     return obj;
 }
 
-void tuple_free(tuple *obj) {
-    for (unsigned i = 0; i < obj->nelements; ++i) {
-        if (obj->elements[i].type == STRING_TYPE)
-            free(obj->elements[i].data.s.string);
-    }
-    free(obj->elements);
-    free(obj);
+tuple *tuple_make_nelements(unsigned nelements) {
+    tuple *obj = malloc(sizeof(tuple));
+    obj->nelements = nelements;
+    obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
+    return obj;
 }
 
-int tuple_typeof(tuple *obj, unsigned position) {
+void tuple_free(tuple *obj) {
+    rollback_free(obj, obj->nelements);
+}
+
+int tuple_typeof(const tuple *obj, unsigned position) {
     if (obj->nelements <= position)
         return TUPLE_E_OUT_OF_RANGE;
     return obj->elements[position].type;
 }
 
-int tuple_get_int(tuple *obj, unsigned position, int *output) {
+int tuple_get_int(const tuple *obj, unsigned position, int *output) {
     int is_valid = check_validity(obj, position, INT_TYPE);
     if (is_valid == 0)
         *output = obj->elements[position].data.i;
     return is_valid;
 }
 
-int tuple_get_float(tuple *obj, unsigned position, float *output) {
+int tuple_get_float(const tuple *obj, unsigned position, float *output) {
     int is_valid = check_validity(obj, position, FLOAT_TYPE);
     if (is_valid == 0)
         *output = obj->elements[position].data.f;
     return is_valid;
 }
 
-int tuple_get_string(tuple *obj, unsigned position, char *output) {
+int tuple_get_string(const tuple *obj, unsigned position, char *output) {
     int is_valid = check_validity(obj, position, STRING_TYPE);
     if (is_valid == 0)
         strcpy(output, obj->elements[position].data.s.string);
     return is_valid;
 }
 
-int tuple_to_buffer(tuple *obj, char *buffer, int size) {
-    if (size < (int)sizeof(unsigned))
-        return TUPLE_E_BAD_SIZE;
-    *(unsigned *)buffer = obj->nelements;
-    buffer += sizeof(unsigned);
-    size -= sizeof(unsigned);
+int tuple_set_int(tuple *obj, unsigned position, int input) {
+    int type = tuple_typeof(obj, position);
+    if (type < 0)
+        return type;
+    if ((type & TYPE_MASK) == STRING_TYPE)
+        free(obj->elements[position].data.s.string);
+    obj->elements[position].type = INT_TYPE;
+    obj->elements[position].data.i = input;
+    return 0;
+}
 
+int tuple_set_float(tuple *obj, unsigned position, float input) {
+    int type = tuple_typeof(obj, position);
+    if (type < 0)
+        return type;
+    if ((type & TYPE_MASK) == STRING_TYPE)
+        free(obj->elements[position].data.s.string);
+    obj->elements[position].type = FLOAT_TYPE;
+    obj->elements[position].data.i = input;
+    return 0;
+}
+
+int tuple_set_string(tuple *obj, unsigned position, char *input) {
+    int type = tuple_typeof(obj, position);
+    if (type < 0)
+        return type;
+    obj->elements[position].data.s.length = strlen(input);
+    if ((type & TYPE_MASK) == STRING_TYPE)
+        obj->elements[position].data.s.string =
+            realloc(obj->elements[position].data.s.string, obj->elements[position].data.s.length + 1);
+    else
+        obj->elements[position].data.s.string = malloc(obj->elements[position].data.s.length + 1);
+
+    obj->elements[position].type = STRING_TYPE;
+    strcpy(obj->elements[position].data.s.string, input);
+    return 0;
+}
+
+int tuple_set_int_op(tuple *obj, unsigned position, int input, unsigned short operator) {
+    return 0;
+}
+
+int tuple_set_float_op(tuple *obj, unsigned position, float input, unsigned short operator) {
+    return 0;
+}
+
+int tuple_set_string_op(tuple *obj, unsigned position, char *input, unsigned short operator) {
+    return 0;
+}
+
+int tuple_compare_to(const tuple* obj, const tuple *blueprint) {
+    return 0;
+}
+
+int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
+    write_to_buffer(obj->nelements, buffer, size, unsigned);
     for (unsigned i = 0; i < obj->nelements && size > 0; ++i) {
-        if (size < (int)sizeof(char))
-            return TUPLE_E_BAD_SIZE;
-        *(unsigned char *)buffer = obj->elements[i].type;
-        buffer += sizeof(char);
-        size -= sizeof(char);
-        if (size <= 0)
-            return TUPLE_E_BAD_SIZE;
-        switch (obj->elements[i].type) {
+        write_to_buffer(obj->elements[i].type, buffer, size, unsigned short);
+        switch (obj->elements[i].type & TYPE_MASK) {
             case INT_TYPE:
-                if (size < (int)sizeof(int))
-                    return TUPLE_E_BAD_SIZE;
-                *(int *)buffer = obj->elements[i].data.i;
-                buffer += sizeof(int);
-                size -= sizeof(int);
+                write_to_buffer(obj->elements[i].data.i, buffer, size, int);
                 break;
             case FLOAT_TYPE:
-                if (size < (int)sizeof(float))
-                    return TUPLE_E_BAD_SIZE;
-                *(float *)buffer = obj->elements[i].data.f;
-                buffer += sizeof(float);
-                size -= sizeof(float);
+                write_to_buffer(obj->elements[i].data.f, buffer, size, float);
                 break;
             case STRING_TYPE:
                 if (size < (int)obj->elements[i].data.s.length)
@@ -142,21 +203,18 @@ int tuple_to_buffer(tuple *obj, char *buffer, int size) {
     return 0;
 }
 
-tuple *tuple_from_buffer(char *buffer) {
+tuple *tuple_from_buffer(const char *buffer) {
     tuple *obj = malloc(sizeof(tuple));
-    obj->nelements = *(unsigned *)buffer;
-    buffer += sizeof(unsigned);
+    read_from_buffer(obj->nelements, buffer, size, unsigned);
     obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
     for (unsigned i = 0; i < obj->nelements; ++i) {
-        obj->elements[i].type = *buffer++;
-        switch(obj->elements[i].type) {
+        read_from_buffer(obj->elements[i].type, buffer, size, unsigned short);
+        switch(obj->elements[i].type & TYPE_MASK) {
             case INT_TYPE:
-                obj->elements[i].data.i = *(int *)buffer;
-                buffer += sizeof(int);
+                read_from_buffer(obj->elements[i].data.i, buffer, size, int);
                 break;
             case FLOAT_TYPE:
-                obj->elements[i].data.f = *(float *)buffer;
-                buffer += sizeof(float);
+                read_from_buffer(obj->elements[i].data.f, buffer, size, float);
                 break;
             case STRING_TYPE:
                 obj->elements[i].data.s.length = strlen(buffer);
@@ -165,9 +223,8 @@ tuple *tuple_from_buffer(char *buffer) {
                 buffer += obj->elements[i].data.s.length + 1;
                 break;
             default:
-                //TODO: rollback and free allocated memory
-                //and return NULL
-                break;
+                rollback_free(obj, i);
+                return NULL;
         }
     }
     return obj;
