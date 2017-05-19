@@ -95,17 +95,17 @@ int tuple_operator(const tuple *obj, unsigned position);
 int tuple_get_int(const tuple *obj, unsigned position, int *output);
 
 /*!
- * @copydoc tuple_get_int(tuple *, unsigned, int)
+ * @copydoc tuple_get_int(const tuple *, unsigned, int *)
  */
 int tuple_get_float(const tuple *obj, unsigned position, float *output);
 
 /*!
- * @copydoc tuple_get_int(tuple *, unsigned, int)
+ * @copydoc tuple_get_int(const tuple *, unsigned, int *)
  */
 int tuple_get_string(const tuple *obj, unsigned position, char *output);
 
 /*!
- * @copydoc tuple_get_int(tuple *, unsigned, int)
+ * @copydoc tuple_get_int(const tuple *, unsigned, int *)
  */
 int tuple_get_string_length(const tuple *obj, unsigned position, unsigned *output);
 
@@ -150,7 +150,7 @@ int tuple_set_string_op(tuple *obj, unsigned position, char *input, unsigned sho
  * \brief Compare tuple to a blueprint
  * \param obj Tuple.
  * \param blueprint Blueprint.
- * \return 0 if obj meets requirements in blueprint, otherwise 1.
+ * \return 1 if obj meets requirements in blueprint, otherwise 0, one of TUPLE_E on error.
  * \see tuple_compare_test*
  */
 int tuple_compare_to(const tuple* obj, const tuple *blueprint);
