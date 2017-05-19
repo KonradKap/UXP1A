@@ -111,7 +111,7 @@ END_TEST
 START_TEST(tuple_set_test1) {
     tuple *base = tuple_make("i", 4);
     tuple_set_int(base, 0, 6);
-    ck_assert_uint_eq(base->elements[0].type, INT_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 0), INT_TYPE);
     ck_assert_int_eq(base->elements[0].data.i, 6);
     tuple_free(base);
 }
@@ -120,7 +120,7 @@ END_TEST
 START_TEST(tuple_set_test2) {
     tuple *base = tuple_make("f", 4.3);
     tuple_set_int(base, 0, 4);
-    ck_assert_uint_eq(base->elements[0].type, INT_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 0), INT_TYPE);
     ck_assert_int_eq(base->elements[0].data.i, 4);
     tuple_free(base);
 }
@@ -129,9 +129,9 @@ END_TEST
 START_TEST(tuple_set_test3) {
     tuple *base = tuple_make("is", 12, "Kappa");
     tuple_set_string(base, 1, "asdfghjqwe");
-    ck_assert_uint_eq(base->elements[1].type, STRING_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 1), STRING_TYPE);
     ck_assert_str_eq(base->elements[1].data.s.string, "asdfghjqwe");
-    ck_assert_uint_eq(base->elements[0].type, INT_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 0), INT_TYPE);
     ck_assert_int_eq(base->elements[0].data.i, 12);
     tuple_free(base);
 }
@@ -140,11 +140,106 @@ END_TEST
 START_TEST(tuple_set_test4) {
     tuple *base = tuple_make("is", 12, "Kappa");
     tuple_set_string(base, 0, "asdfghjqwe");
-    ck_assert_uint_eq(base->elements[1].type, STRING_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 1), STRING_TYPE);
     ck_assert_str_eq(base->elements[1].data.s.string, "Kappa");
-    ck_assert_uint_eq(base->elements[0].type, STRING_TYPE);
+    ck_assert_uint_eq(tuple_typeof(base, 0), STRING_TYPE);
     ck_assert_str_eq(base->elements[0].data.s.string, "asdfghjqwe");
     tuple_free(base);
+}
+END_TEST
+
+START_TEST(tuple_set_op_test1) {
+    tuple *base = tuple_make("is", 12, "Kappa");
+    tuple_set_string_op(base, 0, "ASDF", OP_ANY);
+    ck_assert_int_eq(tuple_typeof(base, 0), STRING_TYPE);
+    ck_assert_int_eq(tuple_operator(base, 0), OP_ANY);
+    ck_assert_str_eq(base->elements[0].data.s.string, "");
+    tuple_free(base);
+}
+END_TEST
+
+START_TEST(tuple_compare_test1) {
+    tuple *base = tuple_make("i", 12);
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_int_op(blueprint, 0, 6, OP_GT);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test2) {
+    tuple *base = tuple_make("i", 12);
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_int_op(blueprint, 0, 12, OP_LE);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test3) {
+    tuple *base = tuple_make("i", 12);
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_int_op(blueprint, 0, 13, OP_LE);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test4) {
+    tuple *base = tuple_make("iii", 12, 13, 14);
+    tuple *blueprint = tuple_make_nelements(3);
+    tuple_set_int_op(blueprint, 0, 13, OP_LT);
+    tuple_set_int_op(blueprint, 1, 13, OP_EQ);
+    tuple_set_int_op(blueprint, 2, 13, OP_GT);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test5) {
+    tuple *base = tuple_make("isf", 12, "bbb", 3.4);
+    tuple *blueprint = tuple_make_nelements(3);
+    tuple_set_int_op(blueprint, 0, 13, OP_LT);
+    tuple_set_string_op(blueprint, 1, "aaa", OP_ANY);
+    tuple_set_float_op(blueprint, 2, 3.4, OP_EQ);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test6) {
+    tuple *base = tuple_make("s", "bbb");
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_float_op(blueprint, 0, 3.4, OP_ANY);
+    ck_assert(!tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test7) {
+    tuple *base = tuple_make("s", "bbb");
+    tuple *blueprint = tuple_make_nelements(2);
+    tuple_set_string_op(blueprint, 0, "", OP_ANY);
+    tuple_set_string_op(blueprint, 1, "", OP_ANY);
+    ck_assert(!tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
+START_TEST(tuple_compare_test8) {
+    tuple *base = tuple_make("s", "bbb");
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_string_op(blueprint, 0, "aaa", OP_GT);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
 }
 END_TEST
 
@@ -169,6 +264,17 @@ Suite *tuple_suite() {
     tests_execute(suite, test_case, tuple_set_test2);
     tests_execute(suite, test_case, tuple_set_test3);
     tests_execute(suite, test_case, tuple_set_test4);
+
+    tests_execute(suite, test_case, tuple_set_op_test1);
+
+    tests_execute(suite, test_case, tuple_compare_test1);
+    tests_execute(suite, test_case, tuple_compare_test2);
+    tests_execute(suite, test_case, tuple_compare_test3);
+    tests_execute(suite, test_case, tuple_compare_test4);
+    tests_execute(suite, test_case, tuple_compare_test5);
+    tests_execute(suite, test_case, tuple_compare_test6);
+    tests_execute(suite, test_case, tuple_compare_test7);
+    tests_execute(suite, test_case, tuple_compare_test8);
 
     return suite;
 }

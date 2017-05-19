@@ -1,9 +1,9 @@
 #include "tuple/tuple.h"
 
 #include <stdarg.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "tuple/tuple_element.h"
 #include "utility.h"
@@ -75,6 +75,58 @@ static void rollback_free(tuple *obj, unsigned index) {
     free(obj);
 }
 
+static int type(const tuple* obj, unsigned position) {
+    if (obj->nelements <= position)
+        return TUPLE_E_OUT_OF_RANGE;
+    return obj->elements[position].type;
+}
+
+static int cmp_eq(const tuple_element *lhs, const tuple_element *rhs) {
+    switch(lhs->type & TYPE_MASK) {
+        case INT_TYPE:
+            return lhs->data.i == rhs->data.i;
+        case FLOAT_TYPE:
+            return fabs(lhs->data.f - rhs->data.f) < EPSILON;
+        case STRING_TYPE:
+            return lhs->data.s.length == rhs->data.s.length
+                && strcmp(lhs->data.s.string, rhs->data.s.string) == 0;
+        default:
+            return TUPLE_E_INVALID_TYPE;
+    }
+}
+
+static int cmp_lt(const tuple_element *lhs, const tuple_element *rhs) {
+    switch(lhs->type & TYPE_MASK) {
+        case INT_TYPE:
+            return lhs->data.i < rhs->data.i;
+        case FLOAT_TYPE:
+            return lhs->data.f < rhs->data.f;
+        case STRING_TYPE:
+            return strcmp(lhs->data.s.string, rhs->data.s.string) == -1;
+        default:
+            return TUPLE_E_INVALID_TYPE;
+    }
+}
+
+static int operator_fit(const tuple_element *obj, const tuple_element *blueprint) {
+    switch (blueprint->type & OP_MASK) {
+        case OP_ANY:
+            return 1;
+        case OP_EQ:
+            return cmp_eq(obj, blueprint);
+        case OP_LT: //obj < blueprint
+            return cmp_lt(obj, blueprint);
+        case OP_LE: // obj <= blueprint <=> !(blueprint < obj)
+            return !cmp_lt(blueprint, obj);
+        case OP_GT: // obj > blueprint <=> blueprint < obj
+            return cmp_lt(blueprint, obj);
+        case OP_GE: // obj >= blueprint <=> !(obj < blueprint)
+            return !cmp_lt(obj, blueprint);
+        default:
+            return TUPLE_E_INVALID_OP;
+    }
+}
+
 tuple *tuple_make(const char *format, ...) {
     va_list list;
     va_start(list, format);
@@ -90,6 +142,9 @@ tuple *tuple_make_nelements(unsigned nelements) {
     tuple *obj = malloc(sizeof(tuple));
     obj->nelements = nelements;
     obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
+    for (unsigned i = 0; i < nelements; ++i) {
+        obj->elements[i].type = INT_TYPE;
+    }
     return obj;
 }
 
@@ -98,9 +153,17 @@ void tuple_free(tuple *obj) {
 }
 
 int tuple_typeof(const tuple *obj, unsigned position) {
-    if (obj->nelements <= position)
-        return TUPLE_E_OUT_OF_RANGE;
-    return obj->elements[position].type;
+    int result = type(obj, position);
+    return result < 0
+        ? result
+        : result & TYPE_MASK;
+}
+
+int tuple_operator(const tuple *obj, unsigned position) {
+    int result = type(obj, position);
+    return result < 0
+        ? result
+        : result & OP_MASK;
 }
 
 int tuple_get_int(const tuple *obj, unsigned position, int *output) {
@@ -124,12 +187,20 @@ int tuple_get_string(const tuple *obj, unsigned position, char *output) {
     return is_valid;
 }
 
+int tuple_get_string_length(const tuple *obj, unsigned position, unsigned *output) {
+    int is_valid = check_validity(obj, position, STRING_TYPE);
+    if (is_valid == 0)
+        *output = obj->elements[position].data.s.length;
+    return is_valid;
+}
+
 int tuple_set_int(tuple *obj, unsigned position, int input) {
     int type = tuple_typeof(obj, position);
     if (type < 0)
         return type;
-    if ((type & TYPE_MASK) == STRING_TYPE)
+    if ((type & TYPE_MASK) == STRING_TYPE) {
         free(obj->elements[position].data.s.string);
+    }
     obj->elements[position].type = INT_TYPE;
     obj->elements[position].data.i = input;
     return 0;
@@ -142,7 +213,7 @@ int tuple_set_float(tuple *obj, unsigned position, float input) {
     if ((type & TYPE_MASK) == STRING_TYPE)
         free(obj->elements[position].data.s.string);
     obj->elements[position].type = FLOAT_TYPE;
-    obj->elements[position].data.i = input;
+    obj->elements[position].data.f = input;
     return 0;
 }
 
@@ -163,19 +234,43 @@ int tuple_set_string(tuple *obj, unsigned position, char *input) {
 }
 
 int tuple_set_int_op(tuple *obj, unsigned position, int input, unsigned short operator) {
+    int result = tuple_set_int(obj, position, input);
+    if (result != 0)
+        return result;
+    obj->elements[position].type |= operator;
     return 0;
 }
 
 int tuple_set_float_op(tuple *obj, unsigned position, float input, unsigned short operator) {
+    int result = tuple_set_float(obj, position, input);
+    if (result != 0)
+        return result;
+    obj->elements[position].type |= operator;
     return 0;
 }
 
 int tuple_set_string_op(tuple *obj, unsigned position, char *input, unsigned short operator) {
+    int result = operator == OP_ANY
+        ? tuple_set_string(obj, position, "")
+        : tuple_set_string(obj, position, input);
+
+    if (result != 0)
+        return result;
+    obj->elements[position].type |= operator;
     return 0;
 }
 
 int tuple_compare_to(const tuple* obj, const tuple *blueprint) {
-    return 0;
+    if (blueprint->nelements != obj->nelements)
+        return 0;
+    for (unsigned i = 0; i < obj->nelements; ++i) {
+        if ((obj->elements[i].type & TYPE_MASK) != (blueprint->elements[i].type & TYPE_MASK))
+            return 0;
+        int cmp_result = operator_fit(&obj->elements[i], &blueprint->elements[i]);
+        if (cmp_result <= 0)
+            return cmp_result;
+    }
+    return 1;
 }
 
 int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
