@@ -108,6 +108,48 @@ START_TEST(tuple_buffer_test3) {
 }
 END_TEST
 
+START_TEST(tuple_buffer_test4) {
+    tuple *base = tuple_make("is", -1, "UXP1A");
+    char buffer[256];
+    tuple_to_buffer(base, buffer, 256);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, base->nelements);
+    ck_assert_int_eq(got->elements[0].data.i, -1);
+    ck_assert_str_eq(got->elements[1].data.s.string, "UXP1A");
+    tuple_free(base);
+    tuple_free(got);
+}
+END_TEST
+
+START_TEST(tuple_buffer_test5) {
+    tuple *base = tuple_make("s", "x");
+    char buffer[8];
+    int result = tuple_to_buffer(base, buffer, 7);
+    ck_assert_int_eq(-3, result);
+    result = tuple_to_buffer(base, buffer, 8);
+    ck_assert_int_eq(0, result);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, base->nelements);
+    ck_assert_str_eq(got->elements[0].data.s.string, "x");
+    tuple_free(base);
+    tuple_free(got);
+}
+END_TEST
+
+START_TEST(tuple_buffer_test6) {
+    tuple *base = tuple_make("si", "xa", -1);
+    char buffer[14];
+    int result = tuple_to_buffer(base, buffer, 15);
+    ck_assert_int_eq(0, result);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, base->nelements);
+    ck_assert_str_eq(got->elements[0].data.s.string, "xa");
+    ck_assert_int_eq(got->elements[1].data.i, -1);
+    tuple_free(base);
+    tuple_free(got);
+}
+END_TEST
+
 START_TEST(tuple_set_test1) {
     tuple *base = tuple_make("i", 4);
     tuple_set_int(base, 0, 6);
@@ -259,6 +301,9 @@ Suite *tuple_suite() {
     tests_execute(suite, test_case, tuple_buffer_test1);
     tests_execute(suite, test_case, tuple_buffer_test2);
     tests_execute(suite, test_case, tuple_buffer_test3);
+    tests_execute(suite, test_case, tuple_buffer_test4);
+    tests_execute(suite, test_case, tuple_buffer_test5);
+    tests_execute(suite, test_case, tuple_buffer_test6);
 
     tests_execute(suite, test_case, tuple_set_test1);
     tests_execute(suite, test_case, tuple_set_test2);

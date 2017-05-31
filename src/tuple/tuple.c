@@ -275,7 +275,7 @@ int tuple_compare_to(const tuple* obj, const tuple *blueprint) {
 
 int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
     write_to_buffer(obj->nelements, buffer, size, unsigned);
-    for (unsigned i = 0; i < obj->nelements && size > 0; ++i) {
+    for (unsigned i = 0; i < obj->nelements; ++i) {
         write_to_buffer(obj->elements[i].type, buffer, size, unsigned short);
         switch (obj->elements[i].type & TYPE_MASK) {
             case INT_TYPE:
@@ -285,11 +285,11 @@ int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
                 write_to_buffer(obj->elements[i].data.f, buffer, size, float);
                 break;
             case STRING_TYPE:
-                if (size < (int)obj->elements[i].data.s.length)
+                if (size < (int)obj->elements[i].data.s.length + 1)
                     return TUPLE_E_BAD_SIZE;
                 strcpy(buffer, obj->elements[i].data.s.string);
                 buffer += obj->elements[i].data.s.length + 1;
-                size -= obj->elements[i].data.s.length;
+                size -= obj->elements[i].data.s.length + 1;
                 break;
             default:
                 return TUPLE_E_INVALID_TYPE;
