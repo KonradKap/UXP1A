@@ -22,7 +22,7 @@ START_TEST(tuple_make_test_2) {
     ck_assert_uint_eq(got->elements[1].type, INT_TYPE);
     ck_assert_int_eq(got->elements[1].data.i, 11);
     ck_assert_uint_eq(got->elements[2].type, STRING_TYPE);
-    ck_assert_str_eq(got->elements[2].data.s.string, "Kappa");
+    ck_assert_str_eq(got->elements[2].data.s, "Kappa");
     tuple_free(got);
 }
 END_TEST
@@ -91,9 +91,9 @@ START_TEST(tuple_buffer_test2) {
     tuple_to_buffer(base, buffer, 256);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
-    ck_assert_str_eq(got->elements[0].data.s.string, "jp2gmd");
+    ck_assert_str_eq(got->elements[0].data.s, "jp2gmd");
     ck_assert_int_eq(got->elements[1].data.i, 1);
-    ck_assert_str_eq(got->elements[2].data.s.string, "UXP1A");
+    ck_assert_str_eq(got->elements[2].data.s, "UXP1A");
     tuple_free(base);
     tuple_free(got);
 }
@@ -115,7 +115,7 @@ START_TEST(tuple_buffer_test4) {
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_int_eq(got->elements[0].data.i, -1);
-    ck_assert_str_eq(got->elements[1].data.s.string, "UXP1A");
+    ck_assert_str_eq(got->elements[1].data.s, "UXP1A");
     tuple_free(base);
     tuple_free(got);
 }
@@ -130,7 +130,7 @@ START_TEST(tuple_buffer_test5) {
     ck_assert_int_eq(0, result);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
-    ck_assert_str_eq(got->elements[0].data.s.string, "x");
+    ck_assert_str_eq(got->elements[0].data.s, "x");
     tuple_free(base);
     tuple_free(got);
 }
@@ -143,7 +143,7 @@ START_TEST(tuple_buffer_test6) {
     ck_assert_int_eq(0, result);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
-    ck_assert_str_eq(got->elements[0].data.s.string, "xa");
+    ck_assert_str_eq(got->elements[0].data.s, "xa");
     ck_assert_int_eq(got->elements[1].data.i, -1);
     tuple_free(base);
     tuple_free(got);
@@ -172,7 +172,7 @@ START_TEST(tuple_set_test3) {
     tuple *base = tuple_make("is", 12, "Kappa");
     tuple_set_string(base, 1, "asdfghjqwe");
     ck_assert_uint_eq(tuple_typeof(base, 1), STRING_TYPE);
-    ck_assert_str_eq(base->elements[1].data.s.string, "asdfghjqwe");
+    ck_assert_str_eq(base->elements[1].data.s, "asdfghjqwe");
     ck_assert_uint_eq(tuple_typeof(base, 0), INT_TYPE);
     ck_assert_int_eq(base->elements[0].data.i, 12);
     tuple_free(base);
@@ -183,9 +183,9 @@ START_TEST(tuple_set_test4) {
     tuple *base = tuple_make("is", 12, "Kappa");
     tuple_set_string(base, 0, "asdfghjqwe");
     ck_assert_uint_eq(tuple_typeof(base, 1), STRING_TYPE);
-    ck_assert_str_eq(base->elements[1].data.s.string, "Kappa");
+    ck_assert_str_eq(base->elements[1].data.s, "Kappa");
     ck_assert_uint_eq(tuple_typeof(base, 0), STRING_TYPE);
-    ck_assert_str_eq(base->elements[0].data.s.string, "asdfghjqwe");
+    ck_assert_str_eq(base->elements[0].data.s, "asdfghjqwe");
     tuple_free(base);
 }
 END_TEST
@@ -195,7 +195,7 @@ START_TEST(tuple_set_op_test1) {
     tuple_set_string_op(base, 0, "ASDF", OP_ANY);
     ck_assert_int_eq(tuple_typeof(base, 0), STRING_TYPE);
     ck_assert_int_eq(tuple_operator(base, 0), OP_ANY);
-    ck_assert_str_eq(base->elements[0].data.s.string, "");
+    ck_assert_str_eq(base->elements[0].data.s, "");
     tuple_free(base);
 }
 END_TEST

@@ -6,10 +6,7 @@ typedef struct tuple_element {
     union {
         int i;
         float f;
-        struct {
-            unsigned int length;
-            char *string;
-        } s;
+        char *s;
     } data;
 } tuple_element;
 

@@ -36,9 +36,8 @@ static unsigned parse_format(va_list *list, tuple *obj, char format, int index) 
         case TUPLE_STRING_FORMAT: {
             obj->elements[index].type = STRING_TYPE;
             char *string = va_arg(*list, char *);
-            obj->elements[index].data.s.length = strlen(string);
-            obj->elements[index].data.s.string = malloc(obj->elements[index].data.s.length + 1);
-            strcpy(obj->elements[index].data.s.string, string);
+            obj->elements[index].data.s = malloc(strlen(string) + 1);
+            strcpy(obj->elements[index].data.s, string);
             return 1;
         }
         default:
@@ -69,7 +68,7 @@ static int check_validity(const tuple *obj, unsigned position, int type) {
 static void rollback_free(tuple *obj, unsigned index) {
     for (unsigned i = 0; i < index; ++i) {
         if ((obj->elements[i].type & TYPE_MASK) == STRING_TYPE)
-            free(obj->elements[i].data.s.string);
+            free(obj->elements[i].data.s);
     }
     free(obj->elements);
     free(obj);
@@ -88,8 +87,7 @@ static int cmp_eq(const tuple_element *lhs, const tuple_element *rhs) {
         case FLOAT_TYPE:
             return fabs(lhs->data.f - rhs->data.f) < EPSILON;
         case STRING_TYPE:
-            return lhs->data.s.length == rhs->data.s.length
-                && strcmp(lhs->data.s.string, rhs->data.s.string) == 0;
+            return strcmp(lhs->data.s, rhs->data.s) == 0;
         default:
             return TUPLE_E_INVALID_TYPE;
     }
@@ -102,7 +100,7 @@ static int cmp_lt(const tuple_element *lhs, const tuple_element *rhs) {
         case FLOAT_TYPE:
             return lhs->data.f < rhs->data.f;
         case STRING_TYPE:
-            return strcmp(lhs->data.s.string, rhs->data.s.string) == -1;
+            return strcmp(lhs->data.s, rhs->data.s) == -1;
         default:
             return TUPLE_E_INVALID_TYPE;
     }
@@ -183,14 +181,7 @@ int tuple_get_float(const tuple *obj, unsigned position, float *output) {
 int tuple_get_string(const tuple *obj, unsigned position, char *output) {
     int is_valid = check_validity(obj, position, STRING_TYPE);
     if (is_valid == 0)
-        strcpy(output, obj->elements[position].data.s.string);
-    return is_valid;
-}
-
-int tuple_get_string_length(const tuple *obj, unsigned position, unsigned *output) {
-    int is_valid = check_validity(obj, position, STRING_TYPE);
-    if (is_valid == 0)
-        *output = obj->elements[position].data.s.length;
+        strcpy(output, obj->elements[position].data.s);
     return is_valid;
 }
 
@@ -199,7 +190,7 @@ int tuple_set_int(tuple *obj, unsigned position, int input) {
     if (type < 0)
         return type;
     if ((type & TYPE_MASK) == STRING_TYPE) {
-        free(obj->elements[position].data.s.string);
+        free(obj->elements[position].data.s);
     }
     obj->elements[position].type = INT_TYPE;
     obj->elements[position].data.i = input;
@@ -211,7 +202,7 @@ int tuple_set_float(tuple *obj, unsigned position, float input) {
     if (type < 0)
         return type;
     if ((type & TYPE_MASK) == STRING_TYPE)
-        free(obj->elements[position].data.s.string);
+        free(obj->elements[position].data.s);
     obj->elements[position].type = FLOAT_TYPE;
     obj->elements[position].data.f = input;
     return 0;
@@ -221,15 +212,16 @@ int tuple_set_string(tuple *obj, unsigned position, char *input) {
     int type = tuple_typeof(obj, position);
     if (type < 0)
         return type;
-    obj->elements[position].data.s.length = strlen(input);
     if ((type & TYPE_MASK) == STRING_TYPE)
-        obj->elements[position].data.s.string =
-            realloc(obj->elements[position].data.s.string, obj->elements[position].data.s.length + 1);
+        obj->elements[position].data.s =
+            realloc(obj->elements[position].data.s,
+                    strlen(input) + 1);
     else
-        obj->elements[position].data.s.string = malloc(obj->elements[position].data.s.length + 1);
+        obj->elements[position].data.s =
+            malloc(strlen(input));
 
     obj->elements[position].type = STRING_TYPE;
-    strcpy(obj->elements[position].data.s.string, input);
+    strcpy(obj->elements[position].data.s, input);
     return 0;
 }
 
@@ -284,12 +276,14 @@ int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
             case FLOAT_TYPE:
                 write_to_buffer(obj->elements[i].data.f, buffer, size, float);
                 break;
-            case STRING_TYPE:
-                if (size < (int)obj->elements[i].data.s.length + 1)
-                    return TUPLE_E_BAD_SIZE;
-                strcpy(buffer, obj->elements[i].data.s.string);
-                buffer += obj->elements[i].data.s.length + 1;
-                size -= obj->elements[i].data.s.length + 1;
+            case STRING_TYPE: {
+                    int length = strlen(obj->elements[i].data.s);
+                    if (size < length + 1)
+                        return TUPLE_E_BAD_SIZE;
+                    strcpy(buffer, obj->elements[i].data.s);
+                    buffer += length + 1;
+                    size -= length + 1;
+                }
                 break;
             default:
                 return TUPLE_E_INVALID_TYPE;
@@ -311,11 +305,12 @@ tuple *tuple_from_buffer(const char *buffer) {
             case FLOAT_TYPE:
                 read_from_buffer(obj->elements[i].data.f, buffer, size, float);
                 break;
-            case STRING_TYPE:
-                obj->elements[i].data.s.length = strlen(buffer);
-                obj->elements[i].data.s.string = malloc(obj->elements[i].data.s.length + 1);
-                strcpy(obj->elements[i].data.s.string, buffer);
-                buffer += obj->elements[i].data.s.length + 1;
+            case STRING_TYPE: {
+                    int length = strlen(buffer);
+                    obj->elements[i].data.s = malloc(length + 1);
+                    strcpy(obj->elements[i].data.s, buffer);
+                    buffer += length + 1;
+                }
                 break;
             default:
                 rollback_free(obj, i);

@@ -105,11 +105,6 @@ int tuple_get_float(const tuple *obj, unsigned position, float *output);
 int tuple_get_string(const tuple *obj, unsigned position, char *output);
 
 /*!
- * @copydoc tuple_get_int(const tuple *, unsigned, int *)
- */
-int tuple_get_string_length(const tuple *obj, unsigned position, unsigned *output);
-
-/*!
  * \brief Setter function.
  * \param obj Tuple to access.
  * \param position Index of element (0-indexed).
