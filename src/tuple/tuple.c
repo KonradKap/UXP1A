@@ -180,10 +180,10 @@ int tuple_get_float(const tuple *obj, unsigned position, float *output) {
     return is_valid;
 }
 
-int tuple_get_string(const tuple *obj, unsigned position, char *output) {
+int tuple_get_string(const tuple *obj, unsigned position, char **output) {
     int is_valid = check_validity(obj, position, STRING_TYPE);
     if (is_valid == 0)
-        strcpy(output, obj->elements[position].data.s);
+        *output = obj->elements[position].data.s;
     return is_valid;
 }
 
@@ -323,4 +323,19 @@ tuple *tuple_from_buffer(const char *buffer) {
         }
     }
     return obj;
+}
+
+char *tuple_error_to_string(int code) {
+    switch (code) {
+        case 0:
+            return "No error.";
+        case TUPLE_E_OUT_OF_RANGE:
+            return "Exceeded tuple's size.";
+        case TUPLE_E_INVALID_TYPE:
+            return "Invalid type.";
+        case TUPLE_E_INVALID_OP:
+            return "Invalid operator";
+        default:
+            return "Unknown error.";
+    }
 }

@@ -20,6 +20,7 @@
 #define OP_LE 0x10
 #define OP_GT 0x20
 #define OP_GE 0x40
+#define OP_BAD 0x80
 #define OP_MASK 0xFC
 
 #define EPSILON 10e-10
@@ -30,8 +31,7 @@
 
 #define TUPLE_E_OUT_OF_RANGE -1
 #define TUPLE_E_INVALID_TYPE -2
-#define TUPLE_E_BAD_SIZE -3
-#define TUPLE_E_INVALID_OP -4
+#define TUPLE_E_INVALID_OP -3
 
 struct tuple_element;
 
@@ -104,7 +104,7 @@ int tuple_get_float(const tuple *obj, unsigned position, float *output);
 /*!
  * @copydoc tuple_get_int(const tuple *, unsigned, int *)
  */
-int tuple_get_string(const tuple *obj, unsigned position, char *output);
+int tuple_get_string(const tuple *obj, unsigned position, char **output);
 
 /*!
  * \brief Setter function.
@@ -168,5 +168,12 @@ int tuple_to_buffer(const tuple *obj, char *buffer, int size);
  * \return Pointer to valid tuple object on success, NULL otherwise.
  */
 tuple *tuple_from_buffer(const char *buffer);
+
+/*!
+ * \brief Translates error code to human-readable message.
+ * \param code Code to translate.
+ * \return String with human-readable message.
+ */
+char *tuple_error_to_string(int code);
 
 #endif //TUPLE_TUPLE_H

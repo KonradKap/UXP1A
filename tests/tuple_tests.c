@@ -49,10 +49,10 @@ END_TEST
 START_TEST(tuple_get_test1) {
     tuple *got = tuple_make("i s", 666, "Kappa");
     int got_i;
-    char got_s[16];
+    char *got_s;
     int result = 0;
     result |= tuple_get_int(got, 0, &got_i);
-    result |= tuple_get_string(got, 1, got_s);
+    result |= tuple_get_string(got, 1, &got_s);
     ck_assert_int_eq(got_i, 666);
     ck_assert_str_eq(got_s, "Kappa");
     ck_assert_int_eq(result, 0);
