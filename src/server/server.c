@@ -1,13 +1,14 @@
-/* * server.c: Server program * to demonstrate interprocess commnuication * with POSIX message queues */ 
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <string.h> 
-#include <sys/types.h> 
-#include <fcntl.h> 
-#include <sys/stat.h> 
-#include <mqueue.h> 
+/* * server.c: Server program * to demonstrate interprocess commnuication * with POSIX message queues */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <mqueue.h>
 #include <stdint.h>
 
+#include "utility.h"
 #include "server/server.h"
 #include "tuple/tuple.h"
 
@@ -18,12 +19,6 @@ int current_item = 0;
 
 
 
-
-int main (int argc, char **argv) {
-
-    printf ("Server: Hello, World!\n");
-    run_serwer(SERVER_QUEUE_NAME);
-}
 
 void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     printf("Server: Init. \n");
@@ -36,31 +31,31 @@ void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     if((*(server) = mq_open(server_name, O_RDONLY | O_CREAT, QUEUE_PERMISSIONS, attr)) == -1){
     	perror ("Server: mq_open (server)");
         exit (1);
-    }; 
+    };
 }
-    
+
 void run_serwer(char * server_name){
 
 	mqd_t server, client;
 	struct mq_attr attr;
 
     init_server(server_name, &server,  &attr);
-    printf("Server: Run. \n");    
+    printf("Server: Run. \n");
     recaive_message(server, client);
-    
-}     
-    
+
+}
+
 void recaive_message(mqd_t  server, mqd_t  client){
 
     char in_buffer [MAX_MSG_SIZE];
     char out_buffer [MAX_MSG_SIZE];
-    
+
     while (1) {
-        
+
         // get the oldest message with highest priority
-        if ((mq_receive (server, in_buffer, MAX_MSG_SIZE, NULL)) == -1) { 
-            perror ("Server: mq_receive"); 
-            exit (1); 
+        if ((mq_receive (server, in_buffer, MAX_MSG_SIZE, NULL)) == -1) {
+            perror ("Server: mq_receive");
+            exit (1);
         }
 
         //printf("Server Name: %s\n", in_buffer );
@@ -84,7 +79,7 @@ void recaive_message(mqd_t  server, mqd_t  client){
 			case OP_GET:
 				add_process(command, pid_c, message);
 				break;
-			default: 
+			default:
 				break;
 
 
@@ -102,29 +97,12 @@ void recaive_message(mqd_t  server, mqd_t  client){
 			}
 		}
 		update_process_queue();
-    } 
-    
+    }
+
 }
 
 pid_t get_pid_from_buffer(char * buffer){
 		return buffer[1] | buffer[0] << 8;
-}
-
-void pack_pid(pid_t pid, char *dest){
-	*((uint8_t *)dest) = sizeof(pid_t);
-	dest += sizeof(uint8_t);
-	*((pid_t *)dest) = pid;
-}
-
-pid_t unpack_pid(char *src){
-	uint8_t size = *((uint8_t *)src);
-	src += sizeof(uint8_t);
-	pid_t pid = *((pid_t *)src);
-	
-	printf("unpacked Pid size: %d\n", size);
-	printf("Unpacked Pid: %d\n", pid);
-
-    return pid;
 }
 
 uint8_t get_command(char * src){
@@ -194,13 +172,13 @@ void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
 
 	client = mq_open (client_name, O_WRONLY);
 
-    if (client == -1) { 
+    if (client == -1) {
         perror ("Server: Not able to open client queue");
-    }             
+    }
     //sprintf (out_buffer, "%c", tupple);
    	printf("%s\n","Sending message to client" );
     if (mq_send (client, out_buffer, MAX_MSG_SIZE, 0) == -1) {
-        perror ("Server: Not able to send message to client"); 
+        perror ("Server: Not able to send message to client");
     }
 
 

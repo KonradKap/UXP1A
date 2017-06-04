@@ -4,6 +4,7 @@
 !/.gitignore
 !/.doxyconf
 bin/
-uxpbin
 html/
 latex/
+client
+server

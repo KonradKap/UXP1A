@@ -30,9 +30,6 @@ pid_t init_client(mqd_t * server_q, mqd_t * client_q, char * server_name);
 void send_message(pid_t client_pid, mqd_t server_q, mqd_t client_q);
 pid_t run_client(char * server_name, mqd_t * server, mqd_t * client);
 
-void pack_pid(pid_t pid, char *dest);
-pid_t unpack_pid(char *src);
-
 void l_output(tuple * message, mqd_t server_q, pid_t c_pid);
 response l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);
 response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);

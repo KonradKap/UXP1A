@@ -1,24 +1,30 @@
 # -Wall == all warnings enabled
 #  # -Werror == treat warnings as ERRORS!
-TARGET = uxpbin
+client_TARGET = client
+server_TARGET = server
 CC = gcc
 CUR_DIR = $(shell pwd)
 CFLAGS = --std=c99 -Wall -Wextra -O0 -g
 INCLUDES = -I"$(CUR_DIR)/src" -I"$(CUR_DIR)/tests"
 LINKFLAGS = --std=c99
-APPLFLAGS =
-TESTLFLAGS = -lcheck -lpthread -lm -lsubunit -lrt
+APPLFLAGS = -lpthread -lm -lrt -lsubunit
+TESTLFLAGS = $(APPLFLAGS) -lcheck
 
-app_SOURCES = $(shell find src/ -name *.c)
-app_OBJECTS = $(app_SOURCES:%.c=bin/%.o)
+common_SOURCES = $(shell find src/ -name *.c -not -path "*/client/*" -not -path "*/server/*")
 
-tests_SOURCES = $(shell find tests/ src/ -name *.c -not -name main.c)
+client_SOURCES = $(shell find src/client -name *.c) $(common_SOURCES)
+client_OBJECTS = $(client_SOURCES:%.c=bin/%.o)
+
+server_SOURCES = $(shell find src/server -name *.c) $(common_SOURCES)
+server_OBJECTS = $(server_SOURCES:%.c=bin/%.o)
+
+tests_SOURCES = $(shell find tests/ src/ -name *.c -not -name *main.c) tests/tests_main.c
 tests_OBJECTS = $(tests_SOURCES:%.c=bin/%.o)
 tests_EXECUTABLE = bin/tests_bin
 
 DEPS := $(app_OBJECTS:.o=.d) $(tests_OBJECTS:.o=.d)
 
-all: directories $(TARGET) tests
+all: directories $(client_TARGET) $(server_TARGET) tests
 
 -include $(DEPS)
 
@@ -42,9 +48,13 @@ tests: $(tests_EXECUTABLE)
 run: $(TARGET)
 	@./$(TARGET)
 
-$(TARGET): $(app_OBJECTS)
+$(client_TARGET): $(client_OBJECTS)
 	@mkdir -p $(@D)
-	$(CC) -o $@ $(app_OBJECTS) $(LINKFLAGS) $(APPLFLAGS) $(INCLUDES)
+	$(CC) -o $@ $(client_OBJECTS) $(LINKFLAGS) $(APPLFLAGS) $(INCLUDES)
+
+$(server_TARGET): $(server_OBJECTS)
+	@mkdir -p $(@D)
+	$(CC) -o $@ $(server_OBJECTS) $(LINKFLAGS) $(APPLFLAGS) $(INCLUDES)
 
 clean:
 	@find . -name "*.o" -delete -or -name "*.d" -delete || true

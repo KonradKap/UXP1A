@@ -11,6 +11,10 @@
 #define OP_READ 0x2
 #define OP_GET 0x4
 #define CORRECT_STATUS 0x0
+
+#include <stdint.h>
+#include <mqueue.h> 
+
 struct tuple;
 typedef struct tuple tuple;
 struct waiting_proces{
@@ -31,6 +35,4 @@ tuple * get_tupple(int index, int command);
 void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command);
 void remove_tuple(int index);
 void update_process_queue();
-void pack_pid(pid_t pid, char *dest);
-pid_t unpack_pid(char *src);
 uint8_t get_command(char * src);
