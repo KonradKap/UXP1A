@@ -1,3 +1,6 @@
+#include <sys/types.h>
+#include <mqueue.h>
+
 #define SERVER_QUEUE_NAME "/Linda-Server" 
 #define QUEUE_PERMISSIONS 0660 
 #define MAX_MESSAGES 10 

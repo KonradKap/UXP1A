@@ -6,5 +6,5 @@
 bin/
 html/
 latex/
-client
-server
+/client
+/server
