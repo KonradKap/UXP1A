@@ -7,7 +7,7 @@ CFLAGS = --std=c99 -Wall -Wextra -O0 -g
 INCLUDES = -I"$(CUR_DIR)/src" -I"$(CUR_DIR)/tests"
 LINKFLAGS = --std=c99
 APPLFLAGS =
-TESTLFLAGS = -lcheck
+TESTLFLAGS = -lcheck -lpthread -lm -lsubunit -lrt
 
 app_SOURCES = $(shell find src/ -name *.c)
 app_OBJECTS = $(app_SOURCES:%.c=bin/%.o)
