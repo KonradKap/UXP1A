@@ -10,7 +10,7 @@
  #include <unistd.h> 
  #include <stdint.h>
  
- #include "server/client.h"
+ #include "client/client.h"
  #include "tuple/tuple.h"
 
 
@@ -27,8 +27,8 @@ int main (int argc, char **argv) {
     pid_t c_pid =run_client(SERVER_QUEUE_NAME, & server_q, & client_q);
     printf("PID: %d\n", c_pid);
     tuple *got = tuple_make("i", 1);
-    //l_output(got, server_q, c_pid);
-    l_read(got, server_q, client_q, c_pid);
+    l_output(got, server_q, c_pid);
+    printf("Status: %d\n", l_read(got, server_q, client_q, c_pid).code);
     tuple_free(got);
 }
 
@@ -200,11 +200,13 @@ void l_output(tuple * message, mqd_t server_q, pid_t c_pid){
 
 
 
-int l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
+response l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
     char send_buffer[MAX_MSG_SIZE];
     char recive_buffer[MAX_MSG_SIZE];
 
-
+    response message;
+    message.code = -1;
+    message.tuple = NULL;
 
     int offset = prepare_header(send_buffer, c_pid, OP_READ);
     int status = tuple_to_buffer(pattern, send_buffer + offset, MAX_MSG_SIZE - offset);
@@ -219,14 +221,24 @@ int l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
             perror ("Client: mq_receive");
             exit (1);
         }
+        status = *((uint8_t *)recive_buffer);
+        if(status == CORRECT_STATUS){
+            response message;
+            tuple * recived = tuple_from_buffer(recive_buffer + COMMAND);
+            message.tuple = recived;
+            message.code = status;
+        }
 
     }
-    return 0;
+    return message;
 }
 
 response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
     char send_buffer[MAX_MSG_SIZE];
     char recive_buffer[MAX_MSG_SIZE];
+    response message;
+    message.code = -1;
+    message.tuple = NULL;
 
 
 
@@ -238,7 +250,7 @@ response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
             perror ("Client: Not able to send message to server");   
         }
 
-    printf("Recive from server:\n"); 
+        printf("Recive from server:\n"); 
         if (mq_receive (client_q, recive_buffer, MSG_BUFFER_SIZE, NULL) == -1) {
             perror ("Client: mq_receive");
             exit (1);
@@ -246,11 +258,12 @@ response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
         status = *((uint8_t *)recive_buffer);
         if(status == CORRECT_STATUS){
             response message;
-            tuple * recived = tuple_from_buffer();
-            message.tuple = received;
+            tuple * recived = tuple_from_buffer(recive_buffer + COMMAND);
+            message.tuple = recived;
+            message.code = status;
         }
     }
-    return NULL;
+    message;
 
 }
 

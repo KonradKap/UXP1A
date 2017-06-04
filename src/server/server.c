@@ -58,9 +58,6 @@ void recaive_message(mqd_t  server, mqd_t  client){
     while (1) {
         
         // get the oldest message with highest priority
-
-
-        
         if ((mq_receive (server, in_buffer, MAX_MSG_SIZE, NULL)) == -1) { 
             perror ("Server: mq_receive"); 
             exit (1); 
@@ -80,17 +77,14 @@ void recaive_message(mqd_t  server, mqd_t  client){
 		switch(command){
 			case OP_SEND:
 				add_tuple(message);
-				//send_tupple_to_client(in_buffer[6], pid_c);
 				break;
 			case OP_READ:
 				add_process(command, pid_c, message);
 				break;
-
 			case OP_GET:
 				add_process(command, pid_c, message);
 				break;
 			default: 
-				
 				break;
 
 
@@ -164,7 +158,7 @@ void add_tuple(tuple * pattern){
 int return_tupple_index_for_pattern(tuple * pattern){
 
 	for(int i = 0; i< current_m; i++){
-		if(tuple_compare_to(pattern, messages[i]))
+		if(tuple_compare_to(messages[i], pattern))
 			return i;
 	}
 
@@ -204,7 +198,7 @@ void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
         perror ("Server: Not able to open client queue");
     }             
     //sprintf (out_buffer, "%c", tupple);
-   
+   	printf("%s\n","Sending message to client" );
     if (mq_send (client, out_buffer, MAX_MSG_SIZE, 0) == -1) {
         perror ("Server: Not able to send message to client"); 
     }

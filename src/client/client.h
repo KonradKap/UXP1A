@@ -19,10 +19,10 @@
 struct tuple;
 typedef struct tuple tuple;
 
-struct response{
+typedef struct response{
 	unsigned code;
 	tuple * tuple;
-}
+} response;
 
 
 void open_server_queue(mqd_t * server_q, char * server_name);
@@ -34,5 +34,5 @@ void pack_pid(pid_t pid, char *dest);
 pid_t unpack_pid(char *src);
 
 void l_output(tuple * message, mqd_t server_q, pid_t c_pid);
-int l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);
-tuple * l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);
+response l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);
+response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid);
