@@ -8,10 +8,12 @@
 #include "tuple/tuple_element.h"
 #include "utility.h"
 
-#define write_to_buffer(what, buffer, size, type)\
+#define write_to_buffer(what, buffer, buffer_begin, size, current, type)\
     do{\
-        if ((size) < (int)(sizeof((what))))\
-            return TUPLE_E_BAD_SIZE;\
+        if ((size) < (int)(sizeof((what)))) {\
+            *(buffer_begin) = (current);\
+            return (current);\
+        }\
         *(type *)(buffer) = (what);\
         (buffer) += sizeof((what));\
         (size) -= sizeof((what));\
@@ -225,7 +227,7 @@ int tuple_set_string(tuple *obj, unsigned position, char *input) {
     return 0;
 }
 
-int tuple_set_int_op(tuple *obj, unsigned position, int input, unsigned short operator) {
+int tuple_set_int_op(tuple *obj, unsigned position, int input, uint16_t operator) {
     int result = tuple_set_int(obj, position, input);
     if (result != 0)
         return result;
@@ -233,7 +235,7 @@ int tuple_set_int_op(tuple *obj, unsigned position, int input, unsigned short op
     return 0;
 }
 
-int tuple_set_float_op(tuple *obj, unsigned position, float input, unsigned short operator) {
+int tuple_set_float_op(tuple *obj, unsigned position, float input, uint16_t operator) {
     int result = tuple_set_float(obj, position, input);
     if (result != 0)
         return result;
@@ -241,7 +243,7 @@ int tuple_set_float_op(tuple *obj, unsigned position, float input, unsigned shor
     return 0;
 }
 
-int tuple_set_string_op(tuple *obj, unsigned position, char *input, unsigned short operator) {
+int tuple_set_string_op(tuple *obj, unsigned position, char *input, uint16_t operator) {
     int result = operator == OP_ANY
         ? tuple_set_string(obj, position, "")
         : tuple_set_string(obj, position, input);
@@ -266,21 +268,24 @@ int tuple_compare_to(const tuple* obj, const tuple *blueprint) {
 }
 
 int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
-    write_to_buffer(obj->nelements, buffer, size, unsigned);
+    unsigned *buffer_begin = (unsigned *)buffer;
+    write_to_buffer(obj->nelements, buffer, buffer_begin, size, 0, unsigned);
     for (unsigned i = 0; i < obj->nelements; ++i) {
-        write_to_buffer(obj->elements[i].type, buffer, size, unsigned short);
+        write_to_buffer(obj->elements[i].type, buffer, buffer_begin, size, i, uint16_t);
         switch (obj->elements[i].type & TYPE_MASK) {
             case INT_TYPE:
-                write_to_buffer(obj->elements[i].data.i, buffer, size, int);
+                write_to_buffer(obj->elements[i].data.i, buffer, buffer_begin, size, i, int);
                 break;
             case FLOAT_TYPE:
-                write_to_buffer(obj->elements[i].data.f, buffer, size, float);
+                write_to_buffer(obj->elements[i].data.f, buffer, buffer_begin, size, i, float);
                 break;
             case STRING_TYPE: {
                     int length = strlen(obj->elements[i].data.s);
-                    if (size < length + 1)
-                        return TUPLE_E_BAD_SIZE;
-                    strcpy(buffer, obj->elements[i].data.s);
+                    if (size < length + 1) {
+                        *buffer_begin = i;
+                        return i;
+                    }
+                    strcpy((char *)buffer, obj->elements[i].data.s);
                     buffer += length + 1;
                     size -= length + 1;
                 }
@@ -289,7 +294,7 @@ int tuple_to_buffer(const tuple *obj, char *buffer, int size) {
                 return TUPLE_E_INVALID_TYPE;
         }
     }
-    return 0;
+    return obj->nelements;
 }
 
 tuple *tuple_from_buffer(const char *buffer) {
@@ -297,7 +302,7 @@ tuple *tuple_from_buffer(const char *buffer) {
     read_from_buffer(obj->nelements, buffer, size, unsigned);
     obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
     for (unsigned i = 0; i < obj->nelements; ++i) {
-        read_from_buffer(obj->elements[i].type, buffer, size, unsigned short);
+        read_from_buffer(obj->elements[i].type, buffer, size, uint16_t);
         switch(obj->elements[i].type & TYPE_MASK) {
             case INT_TYPE:
                 read_from_buffer(obj->elements[i].data.i, buffer, size, int);

@@ -7,6 +7,8 @@
  * \brief File containing tuple definition as well as utility functions.
  */
 
+#include <stdint.h>
+
 #define INT_TYPE 0x02
 #define FLOAT_TYPE 0x01
 #define STRING_TYPE 0x00
@@ -128,18 +130,18 @@ int tuple_set_string(tuple *obj, unsigned position, char *input);
  * \warning With OP_ANY value in input is ignored.
  * \param operator Operator to add to a blueprint.
  */
-int tuple_set_int_op(tuple *obj, unsigned position, int input, unsigned short operator);
+int tuple_set_int_op(tuple *obj, unsigned position, int input, uint16_t operator);
 
 /*!
  * @copydoc tuple_set_int_op(tuple *, unsigned, int, unsigned short)
  */
-int tuple_set_float_op(tuple *obj, unsigned position, float input, unsigned short operator);
+int tuple_set_float_op(tuple *obj, unsigned position, float input, uint16_t operator);
 
 /*!
  * @copydoc tuple_set_int_op(tuple *, unsigned, int, unsigned short)
  * \warning With OP_ANY string in blueprint is set to "".
  */
-int tuple_set_string_op(tuple *obj, unsigned position, char *input, unsigned short operator);
+int tuple_set_string_op(tuple *obj, unsigned position, char *input, uint16_t operator);
 
 /*!
  * \brief Compare tuple to a blueprint
@@ -155,7 +157,7 @@ int tuple_compare_to(const tuple* obj, const tuple *blueprint);
  * \param obj Tuple.
  * \param buffer Memory where the tuple will be serialized.
  * \param size Length of \a buffer.
- * \return 0 on success, one of TUPLE_E on failure.
+ * \return numbers of elements written to buffer on success, one of TUPLE_E on failure.
  */
 int tuple_to_buffer(const tuple *obj, char *buffer, int size);
 

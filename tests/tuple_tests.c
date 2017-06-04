@@ -77,7 +77,8 @@ END_TEST
 START_TEST(tuple_buffer_test1) {
     tuple *base = tuple_make("i", 12);
     char buffer[256];
-    tuple_to_buffer(base, buffer, 256);
+    int written = tuple_to_buffer(base, buffer, 256);
+    ck_assert_int_eq(base->nelements, written);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_int_eq(got->elements[0].data.i, 12);
@@ -88,7 +89,8 @@ END_TEST
 START_TEST(tuple_buffer_test2) {
     tuple *base = tuple_make("sis", "jp2gmd", 1, "UXP1A");
     char buffer[256];
-    tuple_to_buffer(base, buffer, 256);
+    int written = tuple_to_buffer(base, buffer, 256);
+    ck_assert_int_eq(base->nelements, written);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_str_eq(got->elements[0].data.s, "jp2gmd");
@@ -103,7 +105,7 @@ START_TEST(tuple_buffer_test3) {
     tuple *base = tuple_make("s", "A very long string that will surely exceed buffer's maximum size");
     char buffer[16];
     int result = tuple_to_buffer(base, buffer, 16);
-    ck_assert_int_eq(result, TUPLE_E_BAD_SIZE);
+    ck_assert_int_eq(result, 0);
     tuple_free(base);
 }
 END_TEST
@@ -111,7 +113,8 @@ END_TEST
 START_TEST(tuple_buffer_test4) {
     tuple *base = tuple_make("is", -1, "UXP1A");
     char buffer[256];
-    tuple_to_buffer(base, buffer, 256);
+    int written = tuple_to_buffer(base, buffer, 256);
+    ck_assert_int_eq(base->nelements, written);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_int_eq(got->elements[0].data.i, -1);
@@ -125,9 +128,9 @@ START_TEST(tuple_buffer_test5) {
     tuple *base = tuple_make("s", "x");
     char buffer[8];
     int result = tuple_to_buffer(base, buffer, 7);
-    ck_assert_int_eq(-3, result);
-    result = tuple_to_buffer(base, buffer, 8);
     ck_assert_int_eq(0, result);
+    result = tuple_to_buffer(base, buffer, 8);
+    ck_assert_int_eq(1, result);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_str_eq(got->elements[0].data.s, "x");
@@ -140,11 +143,24 @@ START_TEST(tuple_buffer_test6) {
     tuple *base = tuple_make("si", "xa", -1);
     char buffer[14];
     int result = tuple_to_buffer(base, buffer, 15);
-    ck_assert_int_eq(0, result);
+    ck_assert_int_eq(2, result);
     tuple *got = tuple_from_buffer(buffer);
     ck_assert_uint_eq(got->nelements, base->nelements);
     ck_assert_str_eq(got->elements[0].data.s, "xa");
     ck_assert_int_eq(got->elements[1].data.i, -1);
+    tuple_free(base);
+    tuple_free(got);
+}
+END_TEST
+
+START_TEST(tuple_buffer_test7) {
+    tuple *base = tuple_make("si", "xaaa", -1);
+    char buffer[14];
+    int result = tuple_to_buffer(base, buffer, 15);
+    ck_assert_int_eq(1, result);
+    tuple *got = tuple_from_buffer(buffer);
+    ck_assert_uint_eq(got->nelements, 1);
+    ck_assert_str_eq(got->elements[0].data.s, "xaaa");
     tuple_free(base);
     tuple_free(got);
 }
@@ -304,6 +320,7 @@ Suite *tuple_suite() {
     tests_execute(suite, test_case, tuple_buffer_test4);
     tests_execute(suite, test_case, tuple_buffer_test5);
     tests_execute(suite, test_case, tuple_buffer_test6);
+    tests_execute(suite, test_case, tuple_buffer_test7);
 
     tests_execute(suite, test_case, tuple_set_test1);
     tests_execute(suite, test_case, tuple_set_test2);
