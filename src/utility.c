@@ -5,6 +5,8 @@
 #include <stdlib.h>
 
 int string_to_int(char *buffer, int *output) {
+    if (buffer == NULL)
+        return -1;
     char *end = buffer;
     int temp = strtol(buffer, &end, 10);
     if (*end != '\0')
@@ -14,6 +16,8 @@ int string_to_int(char *buffer, int *output) {
 }
 
 int string_to_float(char *buffer, float *output) {
+    if (buffer == NULL)
+        return -1;
     char *end = buffer;
     float temp = strtof(buffer, &end);
     if (*end != '\0')

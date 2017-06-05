@@ -136,17 +136,17 @@ static int get_request(char *request_str) {
 }
 
 static int get_operator(char *argument) {
-    if (strcmp(argument, "any"))
+    if (strcmp(argument, "any") == 0)
         return OP_ANY;
-    if (strcmp(argument, "eq"))
+    if (strcmp(argument, "eq") == 0)
         return OP_EQ;
-    if (strcmp(argument, "lt"))
+    if (strcmp(argument, "lt") == 0)
         return OP_LT;
-    if (strcmp(argument, "le"))
+    if (strcmp(argument, "le") == 0)
         return OP_LE;
-    if (strcmp(argument, "gt"))
+    if (strcmp(argument, "gt") == 0)
         return OP_GT;
-    if (strcmp(argument, "ge"))
+    if (strcmp(argument, "ge") == 0)
         return OP_GE;
     return OP_BAD;
 }
@@ -162,10 +162,10 @@ static int get_operator(char *argument) {
             } \
         } \
         if (operator != OP_ANY || !blueprint) { \
-            char *arg = blueprint ? argv[optind] : optarg; \
+            char *arg = blueprint ? optarg : argv[optind]; \
             int result = string_to_##type(arg, &value); \
             if (result != 0) \
-                return handle_error(obj, "Invalid value for ##type"); \
+                return handle_error(obj, "Invalid value for tuple"); \
         } \
         tuple_set_##type##_op((obj), (index)++, value, operator); \
     } while (0)
