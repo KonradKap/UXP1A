@@ -4,11 +4,11 @@ client_TARGET = client
 server_TARGET = server
 CC = gcc
 CUR_DIR = $(shell pwd)
-CFLAGS = --std=c99 -Wall -Wextra -O0 -g
+CFLAGS = --std=c99 -Wall -Wextra -O0 -g -pthread
 INCLUDES = -I"$(CUR_DIR)/src" -I"$(CUR_DIR)/tests"
 LINKFLAGS = --std=c99
-APPLFLAGS = -lpthread -lm -lrt -lsubunit
-TESTLFLAGS = $(APPLFLAGS) -lcheck
+APPLFLAGS = -pthread -lm -lrt
+TESTLFLAGS = `pkg-config --libs check` $(APPLFLAGS)
 
 common_SOURCES = $(shell find src/ -name *.c -not -path "*/client/*" -not -path "*/server/*")
 

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "tuple/tuple.h"
+
 int string_to_int(char *buffer, int *output) {
     char *end = buffer;
     int temp = strtol(buffer, &end, 10);
@@ -29,13 +31,35 @@ void pack_pid(pid_t pid, char *dest) {
 }
 
 pid_t unpack_pid(char *src) {
-    uint8_t size = *((uint8_t *)src);
     src += sizeof(uint8_t);
     pid_t pid = *((pid_t *)src);
-
-    printf("unpacked Pid size: %d\n", size);
-    printf("Unpacked Pid: %d\n", pid);
-
     return pid;
+}
+
+void print_tuple(tuple *obj) {
+    printf("[ ");
+    for (unsigned i = 0; i < obj->nelements; ++i) {
+        switch(tuple_typeof(obj, i)) {
+            case INT_TYPE: {
+                    int value = 0;
+                    tuple_get_int(obj, i, &value);
+                    printf("i:%d ", value);
+                }
+                break;
+            case FLOAT_TYPE: {
+                    float value = 0;
+                    tuple_get_float(obj, i, &value);
+                    printf("f:%f ", value);
+                }
+                break;
+            case STRING_TYPE: {
+                    char *value = NULL;
+                    tuple_get_string(obj, i, &value);
+                    printf("s:%s ", value);
+                }
+                break;
+        }
+    }
+    printf("]\n");
 }
 

@@ -17,9 +17,6 @@ int current_m = 0;
 struct waiting_proces queue[MAX_MESSAGES];
 int current_item = 0;
 
-
-
-
 void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     printf("Server: Init. \n");
 
@@ -35,39 +32,32 @@ void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
 }
 
 void run_serwer(char * server_name){
-
-	mqd_t server, client;
+	mqd_t server;
 	struct mq_attr attr;
 
     init_server(server_name, &server,  &attr);
     printf("Server: Run. \n");
-    recaive_message(server, client);
-
+    recive_message(server);
 }
 
-void recaive_message(mqd_t  server, mqd_t  client){
-
+void recive_message(mqd_t  server){
     char in_buffer [MAX_MSG_SIZE];
-    char out_buffer [MAX_MSG_SIZE];
 
     while (1) {
-
-        // get the oldest message with highest priority
         if ((mq_receive (server, in_buffer, MAX_MSG_SIZE, NULL)) == -1) {
             perror ("Server: mq_receive");
             exit (1);
         }
-
-        //printf("Server Name: %s\n", in_buffer );
-
 		printf ("Server: message received.\n");
 
         pid_t pid_c = unpack_pid(in_buffer);
-
 		uint8_t command = get_command(in_buffer);
 		int offset = 2* sizeof(uint8_t) + sizeof(pid_t);
 		tuple * message = tuple_from_buffer(in_buffer + offset);
-		printf("Command: %d pid_c: %d\n", command, pid_c);
+
+		printf("Command: %d Pid: %d\nRecived tuple: ", command, pid_c);
+		if(message != NULL)
+			print_tuple(message);
 
 		switch(command){
 			case OP_SEND:
@@ -81,10 +71,7 @@ void recaive_message(mqd_t  server, mqd_t  client){
 				break;
 			default:
 				break;
-
-
 		}
-
 
 		for(int i = 0; i < current_item; i++){
 			if(queue[i].c_pid < 0)
@@ -101,10 +88,6 @@ void recaive_message(mqd_t  server, mqd_t  client){
 
 }
 
-pid_t get_pid_from_buffer(char * buffer){
-		return buffer[1] | buffer[0] << 8;
-}
-
 uint8_t get_command(char * src){
 	src += sizeof(uint8_t);
 	src += sizeof(pid_t);
@@ -112,7 +95,6 @@ uint8_t get_command(char * src){
 }
 
 void add_process(uint8_t command, pid_t c_pid, tuple * pattern ){
-
 	if(current_item < MAX_MESSAGES ){
 	struct waiting_proces elem;
 	elem.c_pid = c_pid;
@@ -122,66 +104,63 @@ void add_process(uint8_t command, pid_t c_pid, tuple * pattern ){
 	queue[current_item] = elem;
 	current_item+=1;
 	}
-
 }
 
 void add_tuple(tuple * pattern){
 	if(current_m < MAX_MESSAGES ){
 		messages[current_m] = pattern;
 		current_m +=1;
-		printf("Current messages: %d\n", current_m);
 	}
 }
 
 int return_tupple_index_for_pattern(tuple * pattern){
-
 	for(int i = 0; i< current_m; i++){
-		if(tuple_compare_to(messages[i], pattern))
-			return i;
+		if(tuple_compare_to(messages[i], pattern)){
+			return i;	
+		}	
 	}
-
 	return -1;
 }
 
 tuple * get_tupple(int index, int command){
 	tuple * temp = messages[index];
-
 	if(command == OP_GET){
 		messages[index] = messages[current_m];
 		current_m -= 1;
 	}
-
 	return temp;
 }
 
 void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
-
 	mqd_t client;
 
 	char client_name[CLIENT_NAME_SIZE];
 	char out_buffer[MAX_MSG_SIZE];
 	sprintf (client_name, "/%d", c_pid);
-	uint8_t status;
-	status = tuple_to_buffer(tupple, out_buffer + 1, MAX_MSG_SIZE - 1);
+	uint8_t count;
+	printf("Sending tuple: ");
+	if(tupple != NULL)
+		print_tuple(tupple);
+	count = tuple_to_buffer(tupple, out_buffer + STATUS, MAX_MSG_SIZE - STATUS);
+
+	if(count == tupple->nelements){
+		*((uint8_t *)out_buffer) = CORRECT_STATUS;
+	}
+	else{
+		*((uint8_t *)out_buffer) = INCORRECT_STATUS;
+	}
 
 	if(command == OP_GET){
 		tuple_free(tupple);
 	}
-
-	out_buffer[0] = (status & 0x000000ff);
-
 	client = mq_open (client_name, O_WRONLY);
 
     if (client == -1) {
         perror ("Server: Not able to open client queue");
     }
-    //sprintf (out_buffer, "%c", tupple);
-   	printf("%s\n","Sending message to client" );
     if (mq_send (client, out_buffer, MAX_MSG_SIZE, 0) == -1) {
         perror ("Server: Not able to send message to client");
     }
-
-
 }
 
 void remove_tuple(int index){
@@ -195,7 +174,6 @@ void remove_tuple(int index){
 }
 
 void update_process_queue(){
-
 	if(current_item!=0){
 		int temp_index = 0;
 
@@ -215,3 +193,26 @@ void update_process_queue(){
 		}
 	}
 }
+
+static void free_tuples_queue(){
+	for (int i = 0; i < current_m; ++i){
+		tuple_free(messages[i]);
+	}
+}
+
+void close_server(mqd_t * server, char * server_queue_name){
+	free_tuples_queue();
+
+    if (mq_close (*(server)) == -1) {
+        perror ("Server: mq_close");
+        exit (1);
+    }
+    if (mq_unlink (server_queue_name) == -1) {
+        perror ("Client: mq_unlink");
+        exit (1);
+    }
+}
+
+
+
+
