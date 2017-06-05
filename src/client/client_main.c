@@ -9,36 +9,32 @@
 #include "tuple/tuple.h"
 #include "tuple/tuple_element.h"
 
-static void print_help();
+static void print_help(const char *name);
 static void print_tuple(tuple *obj);
 static int get_request(char *request_str);
 static unsigned get_number_of_elements(int argc, char **argv);
-static tuple *parse_commandline_tuple(unsigned nelements, int argc, char **argv);
+static tuple *parse_commandline(unsigned nelements, int blueprint, int argc, char **argv);
 static int get_operator(char *argument);
-static tuple *parse_commandline_blueprint(unsigned nelements, int argc, char **argv);
 static void do_request(tuple *obj, int request);
 static void handle_response(response *received);
+static tuple *handle_error(tuple *obj, const char *message);
 
 int main (int argc, char **argv) {
     if (argc < 4) {
-        print_help();
+        print_help(argv[0]);
         return -1;
     }
     int request = get_request(argv[1]);
     if (request == -1) {
-        print_help();
+        print_help(argv[0]);
         return -1;
     }
     unsigned nelements = get_number_of_elements(argc, argv);
     if (nelements == 0) {
-        print_help();
+        print_help(argv[0]);
         return -1;
     }
-    tuple *obj = NULL;
-    if (request == OP_SEND)
-        obj = parse_commandline_tuple(nelements, argc, argv);
-    else
-        obj = parse_commandline_blueprint(nelements, argc, argv);
+    tuple *obj = parse_commandline(nelements, request != OP_SEND, argc, argv);
     if (obj == NULL)
         return -1;
 
@@ -78,12 +74,17 @@ static void handle_response(response *received) {
     printf("%s\n", tuple_error_to_string(received->code));
 }
 
-static void print_help() {
-    printf("Hello world\n");
+static void print_help(const char *name) {
+    printf("Usage:\n");
+    printf("%s send|read|get -n [int] [elements]\n", name);
+    printf("\tWhere elements is -i|-f|-s [operator] [value]\n");
+    printf("\tWhere operator is eq|lt|le|gt|ge|any (only specified if command != send)\n");
+    printf("\tWith operator == any value is forbidden\n");
+    printf("\n");
 }
 
 static void print_tuple(tuple *obj) {
-    printf("Tuple:\n  [ ");
+    printf("[ ");
     for (unsigned i = 0; i < obj->nelements; ++i) {
         switch(tuple_typeof(obj, i)) {
             case INT_TYPE: {
@@ -112,13 +113,13 @@ static void print_tuple(tuple *obj) {
 static unsigned get_number_of_elements(int argc, char **argv) {
     int opt = getopt(argc, argv, "n:");
     if (opt != 'n') {
-        fprintf(stderr, "Missing option '-n'\n");
+        fprintf(stderr, "Missing option '-n'.\n");
         return 0;
     }
     int nelements = 0;
     int result = string_to_int(optarg, &nelements);
     if (result != 0) {
-        fprintf(stderr, "Invalid argument for option '-n': '%s'\n", optarg);
+        fprintf(stderr, "Invalid argument for option '-n': '%s'.\n", optarg);
     }
     return nelements;
 }
@@ -130,49 +131,8 @@ static int get_request(char *request_str) {
         return OP_READ;
     if (strcmp(request_str, "get") == 0)
         return OP_GET;
-    fprintf(stderr, "Invalid command: '%s'\n", request_str);
+    fprintf(stderr, "Invalid command: '%s'.\n", request_str);
     return -1;
-}
-
-static tuple *parse_commandline_tuple(unsigned nelements, int argc, char **argv) {
-    tuple *obj = tuple_make_nelements(nelements);
-    unsigned index = 0;
-    int opt = -1;
-    while ((opt = getopt(argc, argv, "i:f:s:")) != -1) {
-        switch(opt) {
-            case 'i': {
-                    int value = 0;
-                    int result = string_to_int(optarg, &value);
-                    if (result != 0) {
-                        fprintf(stderr, "Invalid value for integer: '%s'", optarg);
-                        tuple_free(obj);
-                        return NULL;
-                    }
-                    tuple_set_int(obj, index++, value);
-                }
-                break;
-            case 'f': {
-                    float value = 0;
-                    int result = string_to_float(optarg, &value);
-                    if (result != 0) {
-                        fprintf(stderr, "Invalid value for float: '%s'", optarg);
-                        tuple_free(obj);
-                        return NULL;
-                    }
-                    tuple_set_float(obj, index++, value);
-                }
-                break;
-            case 's': {
-                    tuple_set_string(obj, index++, optarg);
-                }
-                break;
-            case '?':
-            default:
-                tuple_free(obj);
-                return NULL;
-        }
-    }
-    return obj;
 }
 
 static int get_operator(char *argument) {
@@ -191,59 +151,53 @@ static int get_operator(char *argument) {
     return OP_BAD;
 }
 
-static tuple *parse_commandline_blueprint(unsigned nelements, int argc, char **argv) {
+#define read_commandline(obj, index, blueprint, type)\
+    do { \
+        type value = 0; \
+        int operator = OP_ANY; \
+        if (blueprint) { \
+            operator = get_operator(optarg); \
+            if (operator == OP_BAD) { \
+                return handle_error(obj, "Invalid value for operator"); \
+            } \
+        } \
+        if (operator != OP_ANY || !blueprint) { \
+            char *arg = blueprint ? argv[optind] : optarg; \
+            int result = string_to_##type(arg, &value); \
+            if (result != 0) \
+                return handle_error(obj, "Invalid value for ##type"); \
+        } \
+        tuple_set_##type##_op((obj), (index)++, value, operator); \
+    } while (0)
+
+static tuple *handle_error(tuple *obj, const char *message) {
+    fprintf(stderr, "%s: '%s',\n", message, optarg);
+    tuple_free(obj);
+    return NULL;
+}
+
+static tuple *parse_commandline(unsigned nelements, int blueprint, int argc, char **argv) {
     tuple *obj = tuple_make_nelements(nelements);
     unsigned index = 0;
     int opt = -1;
     while ((opt = getopt(argc, argv, "i:f:s:")) != -1) {
         switch(opt) {
-            case 'i': {
-                    int value = 0;
-                    int operator = get_operator(optarg);
-                    if (operator == OP_BAD) {
-                        fprintf(stderr, "Invalid value for operator: '%s'", optarg);
-                        tuple_free(obj);
-                        return NULL;
-                    }
-                    if (operator != OP_ANY) {
-                        int result = string_to_int(argv[optind], &value);
-                        if (result != 0) {
-                            fprintf(stderr, "Invalid value for integer: '%s'", optarg);
-                            tuple_free(obj);
-                            return NULL;
-                        }
-                    }
-                    tuple_set_int_op(obj, index++, value, operator);
-                }
+            case 'i':
+                read_commandline(obj, index, blueprint, int);
                 break;
-            case 'f': {
-                    float value = 0;
-                    int operator = get_operator(optarg);
-                    if (operator == OP_BAD) {
-                        fprintf(stderr, "Invalid value for operator: '%s'", optarg);
-                        tuple_free(obj);
-                        return NULL;
-                    }
-                    if (operator != OP_ANY) {
-                        int result = string_to_float(argv[optind], &value);
-                        if (result != 0) {
-                            fprintf(stderr, "Invalid value for float: '%s'", optarg);
-                            tuple_free(obj);
-                            return NULL;
-                        }
-                    }
-                    tuple_set_float_op(obj, index++, value, operator);
-                }
+            case 'f':
+                read_commandline(obj, index, blueprint, float);
                 break;
-            case 's': {
+            case 's':
+                if (blueprint) {
                     int operator = get_operator(optarg);
-                    if (operator == OP_BAD) {
-                        fprintf(stderr, "Invalid value for operator: '%s'", optarg);
-                        tuple_free(obj);
-                        return NULL;
-                    }
-                    tuple_set_string_op(obj, index++, argv[optind], operator);
+                    if (operator == OP_BAD)
+                        return handle_error(obj, "Invalid value for operator");
+                    tuple_set_string_op(obj, index++, "", operator);
                 }
+                else
+                    tuple_set_string(obj, index++, optarg);
+
                 break;
             case '?':
             default:
@@ -251,5 +205,13 @@ static tuple *parse_commandline_blueprint(unsigned nelements, int argc, char **a
                 return NULL;
         }
     }
+    if (index != nelements) {
+        fprintf(stderr, "Invalid number of fields for tuple, got %u, expected %u.\n",
+            index,
+            nelements);
+        tuple_free(obj);
+        return NULL;
+    }
+
     return obj;
 }

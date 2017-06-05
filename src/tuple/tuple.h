@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+#define INVALID_TYPE 0x03
 #define INT_TYPE 0x02
 #define FLOAT_TYPE 0x01
 #define STRING_TYPE 0x00
@@ -58,7 +59,7 @@ tuple *tuple_make(const char *format, ...);
 
 /*!
  * \brief Makes tuple with given element count.
- * \warning All types are set to INT_TYPE.
+ * \warning All types are set to INVALID_TYPE.
  * \warning Pointer received by this function must be freed to avoid memory leak.
  * \param nelements Requested number of elements.
  * \return Pointer pointing to initialized tuple object on success, NULL otherwise.

@@ -143,7 +143,7 @@ tuple *tuple_make_nelements(unsigned nelements) {
     obj->nelements = nelements;
     obj->elements = malloc(sizeof(tuple_element) * obj->nelements);
     for (unsigned i = 0; i < nelements; ++i) {
-        obj->elements[i].type = INT_TYPE;
+        obj->elements[i].type = INVALID_TYPE;
     }
     return obj;
 }
