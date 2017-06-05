@@ -1,5 +1,4 @@
 /* * client.c: Client program * to demonstrate interprocess commnuication * with POSIX message queues */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

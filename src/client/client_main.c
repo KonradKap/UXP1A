@@ -137,10 +137,10 @@ static int get_operator(char *argument) {
             } \
         } \
         if (operator != OP_ANY || !blueprint) { \
-            char *arg = blueprint ? optarg : argv[optind]; \
+            char *arg = blueprint ? argv[optind] : optarg; \
             int result = string_to_##type(arg, &value); \
             if (result != 0) \
-                return handle_error(obj, "Invalid value for tuple"); \
+                return handle_error(obj, "Invalid value for " #type); \
         } \
         tuple_set_##type##_op((obj), (index)++, value, operator); \
     } while (0)
