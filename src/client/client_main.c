@@ -10,7 +10,7 @@
 #include "tuple/tuple_element.h"
 
 static void print_help(const char *name);
-static void print_tuple(tuple *obj);
+
 static int get_request(char *request_str);
 static unsigned get_number_of_elements(int argc, char **argv);
 static tuple *parse_commandline(unsigned nelements, int blueprint, int argc, char **argv);
@@ -83,32 +83,7 @@ static void print_help(const char *name) {
     printf("\n");
 }
 
-static void print_tuple(tuple *obj) {
-    printf("[ ");
-    for (unsigned i = 0; i < obj->nelements; ++i) {
-        switch(tuple_typeof(obj, i)) {
-            case INT_TYPE: {
-                    int value = 0;
-                    tuple_get_int(obj, i, &value);
-                    printf("i:%d ", value);
-                }
-                break;
-            case FLOAT_TYPE: {
-                    float value = 0;
-                    tuple_get_float(obj, i, &value);
-                    printf("f:%f ", value);
-                }
-                break;
-            case STRING_TYPE: {
-                    char *value = NULL;
-                    tuple_get_string(obj, i, &value);
-                    printf("s:%s ", value);
-                }
-                break;
-        }
-    }
-    printf("]\n");
-}
+
 
 static unsigned get_number_of_elements(int argc, char **argv) {
     int opt = getopt(argc, argv, "n:");
