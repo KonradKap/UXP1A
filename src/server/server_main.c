@@ -3,6 +3,6 @@
 #include "server/server.h"
 
 int main () {
-    run_serwer(SERVER_QUEUE_NAME);
+    run_server(SERVER_QUEUE_NAME);
 }
 

@@ -31,7 +31,7 @@ void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     };
 }
 
-void run_serwer(char * server_name){
+void run_server(char * server_name){
 	mqd_t server;
 	struct mq_attr attr;
 
@@ -72,14 +72,13 @@ void recive_message(mqd_t  server){
 			default:
 				break;
 		}
-
 		for(int i = 0; i < current_item; i++){
 			if(queue[i].c_pid < 0)
 				continue;
-			int index = return_tupple_index_for_pattern(queue[i].pattern);
+			int index = return_tuple_index_for_pattern(queue[i].pattern);
 			if(index > -1){
-				tuple * tupple = get_tupple(index, queue[i].command);
-				send_tupple_to_client(tupple, queue[i].c_pid, queue[i].command);
+				tuple * response = get_tuple(index, queue[i].command);
+				send_tuple_to_client(response, queue[i].c_pid, queue[i].command);
 				queue[i].c_pid = -1;
 			}
 		}
@@ -103,6 +102,7 @@ void add_process(uint8_t command, pid_t c_pid, tuple * pattern ){
 
 	queue[current_item] = elem;
 	current_item+=1;
+	printf("Add process: Current item: %d\n", current_item);
 	}
 }
 
@@ -110,10 +110,11 @@ void add_tuple(tuple * pattern){
 	if(current_m < MAX_MESSAGES ){
 		messages[current_m] = pattern;
 		current_m +=1;
+		printf("Count tuples: %d\n", current_m);
 	}
 }
 
-int return_tupple_index_for_pattern(tuple * pattern){
+int return_tuple_index_for_pattern(tuple * pattern){
 	for(int i = 0; i< current_m; i++){
 		if(tuple_compare_to(messages[i], pattern)){
 			return i;	
@@ -122,16 +123,17 @@ int return_tupple_index_for_pattern(tuple * pattern){
 	return -1;
 }
 
-tuple * get_tupple(int index, int command){
+tuple * get_tuple(int index, int command){
 	tuple * temp = messages[index];
 	if(command == OP_GET){
-		messages[index] = messages[current_m];
+		messages[index] = messages[current_m-1];
 		current_m -= 1;
+		printf("Get tuple: %d\n", current_m);
 	}
 	return temp;
 }
 
-void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
+void send_tuple_to_client(tuple * obj, pid_t c_pid, int command){
 	mqd_t client;
 
 	char client_name[CLIENT_NAME_SIZE];
@@ -139,11 +141,11 @@ void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
 	sprintf (client_name, "/%d", c_pid);
 	uint8_t count;
 	printf("Sending tuple: ");
-	if(tupple != NULL)
-		print_tuple(tupple);
-	count = tuple_to_buffer(tupple, out_buffer + STATUS, MAX_MSG_SIZE - STATUS);
+	if(obj != NULL)
+		print_tuple(obj);
+	count = tuple_to_buffer(obj, out_buffer + STATUS, MAX_MSG_SIZE - STATUS);
 
-	if(count == tupple->nelements){
+	if(count == obj->nelements){
 		*((uint8_t *)out_buffer) = CORRECT_STATUS;
 	}
 	else{
@@ -151,7 +153,7 @@ void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command){
 	}
 
 	if(command == OP_GET){
-		tuple_free(tupple);
+		tuple_free(obj);
 	}
 	client = mq_open (client_name, O_WRONLY);
 

@@ -27,14 +27,14 @@ struct waiting_proces{
 
 
 void init_server(char * server_name, mqd_t * server, struct mq_attr * attr);
-void run_serwer(char * server_name);
+void run_server(char * server_name);
 void recive_message(mqd_t  server);
 uint8_t get_command(char * src);
 void add_process(uint8_t command, pid_t c_pid, tuple * pattern );
 void add_tuple(tuple * pattern);
-int return_tupple_index_for_pattern(tuple * pattern);
-tuple * get_tupple(int index, int command);
-void send_tupple_to_client(tuple * tupple, pid_t c_pid, int command);
+int return_tuple_index_for_pattern(tuple * pattern);
+tuple * get_tuple(int index, int command);
+void send_tuple_to_client(tuple * obj, pid_t c_pid, int command);
 void remove_tuple(int index);
 void update_process_queue();
 
