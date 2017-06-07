@@ -301,6 +301,16 @@ START_TEST(tuple_compare_test8) {
 }
 END_TEST
 
+START_TEST(tuple_compare_test9) {
+    tuple *base = tuple_make("s", "bbb");
+    tuple *blueprint = tuple_make_nelements(1);
+    tuple_set_string_op(blueprint, 0, "bbb", OP_EQ);
+    ck_assert(tuple_compare_to(base, blueprint));
+    tuple_free(base);
+    tuple_free(blueprint);
+}
+END_TEST
+
 Suite *tuple_suite() {
     Suite *suite = suite_create("tuple tests");
     TCase *test_case;
@@ -337,6 +347,7 @@ Suite *tuple_suite() {
     tests_execute(suite, test_case, tuple_compare_test6);
     tests_execute(suite, test_case, tuple_compare_test7);
     tests_execute(suite, test_case, tuple_compare_test8);
+    tests_execute(suite, test_case, tuple_compare_test9);
 
     return suite;
 }

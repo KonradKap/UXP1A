@@ -168,7 +168,7 @@ static tuple *parse_commandline(unsigned nelements, int blueprint, int argc, cha
                     int operator = get_operator(optarg);
                     if (operator == OP_BAD)
                         return handle_error(obj, "Invalid value for operator");
-                    tuple_set_string_op(obj, index++, "", operator);
+                    tuple_set_string_op(obj, index++, argv[optind], operator);
                 }
                 else
                     tuple_set_string(obj, index++, optarg);
