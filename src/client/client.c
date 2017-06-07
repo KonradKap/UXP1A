@@ -51,6 +51,7 @@ void close_client(mqd_t * server, mqd_t * client, pid_t c_pid){
         perror ("Client: mq_unlink");
         exit (1);
     }
+    printf("Client queue close.\n");
 }
 
 void open_server_queue(mqd_t * server_q, char * server_name){

@@ -49,18 +49,19 @@ static void do_request(tuple *obj, int request) {
         case OP_SEND:
             l_output(obj, server, pid);
             printf("Message sent.\n");
-            return;
+            break;
         case OP_READ: {
                 response received = l_read(obj, server, client, pid);
                 handle_response(&received);
             }
-            return;
+            break;
         case OP_GET: {
                 response received = l_input(obj, server, client, pid);
                 handle_response(&received);
             }
-            return;
+            break;
     }
+    close_client(&server, &client, pid);
 
 }
 
