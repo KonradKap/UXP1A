@@ -3,6 +3,7 @@
 #include "tuple/tuple.h"
 #include "tuple/tuple_element.h"
 #include "utility.h"
+#include "error.h"
 #include "tests_utility.h"
 
 START_TEST(tuple_make_test_1) {

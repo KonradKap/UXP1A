@@ -10,7 +10,6 @@
 #include "tuple/tuple_element.h"
 
 static void print_help(const char *name);
-
 static int get_request(char *request_str);
 static unsigned get_number_of_elements(int argc, char **argv);
 static tuple *parse_commandline(unsigned nelements, int blueprint, int argc, char **argv);
@@ -71,7 +70,7 @@ static void handle_response(response *received) {
         tuple_free(received->tuple);
         return;
     }
-    printf("%s\n", tuple_error_to_string(received->code));
+    printf("%s\n", error_to_string(received->code));
 }
 
 static void print_help(const char *name) {

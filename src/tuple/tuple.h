@@ -30,10 +30,6 @@
 #define TUPLE_FLOAT_FORMAT 'f'
 #define TUPLE_STRING_FORMAT 's'
 
-#define TUPLE_E_OUT_OF_RANGE -1
-#define TUPLE_E_INVALID_TYPE -2
-#define TUPLE_E_INVALID_OP -3
-
 struct tuple_element;
 
 /*!
@@ -169,12 +165,5 @@ int tuple_to_buffer(const tuple *obj, char *buffer, int size);
  * \return Pointer to valid tuple object on success, NULL otherwise.
  */
 tuple *tuple_from_buffer(const char *buffer);
-
-/*!
- * \brief Translates error code to human-readable message.
- * \param code Code to translate.
- * \return String with human-readable message.
- */
-char *tuple_error_to_string(int code);
 
 #endif //TUPLE_TUPLE_H

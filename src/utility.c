@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "tuple/tuple.h"
+#include "error.h"
 
 int string_to_int(char *buffer, int *output) {
     if (buffer == NULL)
@@ -67,3 +68,17 @@ void print_tuple(tuple *obj) {
     printf("]\n");
 }
 
+char *error_to_string(int code) {
+    switch (code) {
+        case 0:
+            return "No error.";
+        case TUPLE_E_OUT_OF_RANGE:
+            return "Exceeded tuple's size.";
+        case TUPLE_E_INVALID_TYPE:
+            return "Invalid type.";
+        case TUPLE_E_INVALID_OP:
+            return "Invalid operator";
+        default:
+            return "Unknown error.";
+    }
+}

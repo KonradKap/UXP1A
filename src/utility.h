@@ -14,5 +14,6 @@ int string_to_float(char *buffer, float *output);
 void pack_pid(pid_t pid, char *dest);
 pid_t unpack_pid(char *src);
 void print_tuple(tuple *obj);
+char *error_to_string(int code);
 
 #endif //UTILITY_H

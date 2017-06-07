@@ -7,6 +7,7 @@
 
 #include "tuple/tuple_element.h"
 #include "utility.h"
+#include "error.h"
 
 #define write_to_buffer(what, buffer, buffer_begin, size, current, type)\
     do{\
@@ -325,17 +326,3 @@ tuple *tuple_from_buffer(const char *buffer) {
     return obj;
 }
 
-char *tuple_error_to_string(int code) {
-    switch (code) {
-        case 0:
-            return "No error.";
-        case TUPLE_E_OUT_OF_RANGE:
-            return "Exceeded tuple's size.";
-        case TUPLE_E_INVALID_TYPE:
-            return "Invalid type.";
-        case TUPLE_E_INVALID_OP:
-            return "Invalid operator";
-        default:
-            return "Unknown error.";
-    }
-}
