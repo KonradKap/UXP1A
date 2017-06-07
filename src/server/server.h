@@ -38,4 +38,4 @@ void send_tuple_to_client(tuple * obj, pid_t c_pid, int command);
 void remove_tuple(int index);
 void update_process_queue();
 
-void close_server(mqd_t * server, char * server_queue_name);
+void close_server(mqd_t server, char * server_queue_name);

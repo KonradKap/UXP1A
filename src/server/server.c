@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <mqueue.h>
 #include <stdint.h>
+#include <signal.h>
 
 #include "utility.h"
 #include "server/server.h"
@@ -16,6 +17,13 @@ tuple * messages[MAX_MESSAGES];
 int current_m = 0;
 struct waiting_proces queue[MAX_MESSAGES];
 int current_item = 0;
+
+static volatile int running = 1;
+
+void interrupt_handler(int dummy) {
+    IGNORED(dummy);
+    running = 0;
+}
 
 void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     printf("Server: Init. \n");
@@ -29,6 +37,8 @@ void init_server(char * server_name, mqd_t * server, struct mq_attr * attr){
     	perror ("Server: mq_open (server)");
         exit (1);
     };
+
+    signal(SIGINT, interrupt_handler);
 }
 
 void run_server(char * server_name){
@@ -43,12 +53,12 @@ void run_server(char * server_name){
 void recive_message(mqd_t  server){
     char in_buffer [MAX_MSG_SIZE];
 
-    while (1) {
-        if ((mq_receive (server, in_buffer, MAX_MSG_SIZE, NULL)) == -1) {
-            perror ("Server: mq_receive");
-            exit (1);
+    while (running) {
+        if (mq_receive(server, in_buffer, MAX_MSG_SIZE, NULL) == -1) {
+            perror("mq_receive");
+            break;
         }
-		printf ("Server: message received.\n");
+	printf("Server: message received.\n");
 
         pid_t pid_c = unpack_pid(in_buffer);
 		uint8_t command = get_command(in_buffer);
@@ -84,7 +94,8 @@ void recive_message(mqd_t  server){
 		}
 		update_process_queue();
     }
-
+    printf("Closing resources.\n");
+    close_server(server, SERVER_QUEUE_NAME);
 }
 
 uint8_t get_command(char * src){
@@ -117,8 +128,8 @@ void add_tuple(tuple * pattern){
 int return_tuple_index_for_pattern(tuple * pattern){
 	for(int i = 0; i< current_m; i++){
 		if(tuple_compare_to(messages[i], pattern)){
-			return i;	
-		}	
+			return i;
+		}
 	}
 	return -1;
 }
@@ -202,10 +213,10 @@ static void free_tuples_queue(){
 	}
 }
 
-void close_server(mqd_t * server, char * server_queue_name){
+void close_server(mqd_t server, char * server_queue_name){
 	free_tuples_queue();
 
-    if (mq_close (*(server)) == -1) {
+    if (mq_close (server) == -1) {
         perror ("Server: mq_close");
         exit (1);
     }
