@@ -78,6 +78,10 @@ char *error_to_string(int code) {
             return "Invalid type.";
         case TUPLE_E_INVALID_OP:
             return "Invalid operator";
+        case SERVER_E_OVERLOAD_MESSAGE_BUFFER:
+            return "Message buffer overload.";
+        case SERVER_E_OVERLOAD_CLIENT_QUEUE:
+            return "Client queue overload."; 
         default:
             return "Unknown error.";
     }

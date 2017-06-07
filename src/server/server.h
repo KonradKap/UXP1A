@@ -1,22 +1,7 @@
-
-#define SERVER_QUEUE_NAME "/Linda-Server" 
-#define QUEUE_PERMISSIONS 0660 
-#define MAX_MESSAGES 10 
-#define MAX_MSG_SIZE 256 
-#define MSG_BUFFER_SIZE MAX_MSG_SIZE + 10
-#define CLIENT_NAME_SIZE 64
-
-
-#define OP_SEND 0x1
-#define OP_READ 0x2
-#define OP_GET 0x4
-#define CORRECT_STATUS 0x0
-#define INCORRECT_STATUS -1
-#define STATUS 1
-
 #include <stdint.h>
 #include <mqueue.h> 
 
+#define SERVER_QUEUE_NAME "/Linda-Server"
 
 typedef struct tuple tuple;
 struct waiting_proces{
@@ -39,3 +24,4 @@ void remove_tuple(int index);
 void update_process_queue();
 
 void close_server(mqd_t server, char * server_queue_name);
+void send_reply(pid_t c_pid, int reply);

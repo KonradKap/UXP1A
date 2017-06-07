@@ -13,6 +13,7 @@
 #include "utility.h"
 #include "client/client.h"
 #include "tuple/tuple.h"
+#include "error.h"
 
 pid_t init_client(mqd_t * server_q, mqd_t * client_q, char * server_name){
 	struct mq_attr attr;
@@ -75,11 +76,12 @@ static int prepare_header(char * buffer, pid_t c_pid, int command){
     return header_length;
 }
 
-void l_output(tuple * message, mqd_t server_q, pid_t c_pid){
+void l_output(tuple * message, mqd_t server_q, mqd_t client_q, pid_t c_pid){
 	char send_buffer[MAX_MSG_SIZE];
 
     int offset = prepare_header(send_buffer, c_pid, OP_SEND);
     unsigned status = tuple_to_buffer(message, send_buffer + offset, MAX_MSG_SIZE - offset);
+    int validation;
 
     if(status == message->nelements){
         printf("Sending tuple: \n");
@@ -87,6 +89,12 @@ void l_output(tuple * message, mqd_t server_q, pid_t c_pid){
         if (mq_send (server_q, send_buffer, MAX_MSG_SIZE, 0) == -1) {
             perror ("Client: Not able to send message to server");
         }
+        if (mq_receive (client_q, send_buffer, MAX_MSG_SIZE, NULL) == -1) {
+            perror ("Client: mq_receive");
+            exit (1);
+        }
+        validation = *((int8_t *)send_buffer);
+        printf("%s\n", error_to_string(validation));
     }
 }
 
@@ -100,7 +108,7 @@ response l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
 
     int offset = prepare_header(send_buffer, c_pid, OP_READ);
     uint8_t count = tuple_to_buffer(pattern, send_buffer + offset, MAX_MSG_SIZE - offset);
-
+    int8_t validation;
     if(count == pattern->nelements){
         printf("Sending tuple: \n");
         if(pattern != NULL)
@@ -113,13 +121,13 @@ response l_read(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
             perror ("Client: mq_receive");
             exit (1);
         }
-        count = *((uint8_t *)recive_buffer);
-        if(count == CORRECT_STATUS){
+        validation = *((int8_t *)recive_buffer);
+        message.code = validation;
+        if(validation == CORRECT_STATUS){
             tuple * recived = tuple_from_buffer(recive_buffer + COMMAND);
             if(recived != NULL){
                 print_tuple(pattern);
                 message.tuple = recived;
-                message.code = count;
             }
         }
     }
@@ -136,7 +144,7 @@ response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
 
     int offset = prepare_header(send_buffer, c_pid, OP_GET);
     uint8_t count = tuple_to_buffer(pattern, send_buffer + offset, MAX_MSG_SIZE - offset);
-
+    int8_t validation;
     if(count == pattern->nelements){
         printf("Sending tuple: \n");
 
@@ -148,16 +156,17 @@ response l_input(tuple * pattern, mqd_t server_q, mqd_t client_q, pid_t c_pid){
 
         printf("Recive from server:\n");
 
-        if (mq_receive (client_q, recive_buffer, MSG_BUFFER_SIZE, NULL) == -1) {
+        if (mq_receive (client_q, recive_buffer, MAX_MSG_SIZE, NULL) == -1) {
             perror ("Client: mq_receive");
             exit (1);
         }
-        count = *((uint8_t *)recive_buffer);
-        if(count == CORRECT_STATUS){
+
+        validation = *((int8_t *)recive_buffer);
+        message.code = validation;
+        if(validation == CORRECT_STATUS){
             tuple * recived = tuple_from_buffer(recive_buffer + COMMAND);
             if(recived != NULL){
                 message.tuple = recived;
-                message.code = count;
             }
         }
     }

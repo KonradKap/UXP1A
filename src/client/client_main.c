@@ -47,7 +47,7 @@ static void do_request(tuple *obj, int request) {
     pid_t pid = run_client(SERVER_QUEUE_NAME, &server, &client);
     switch (request) {
         case OP_SEND:
-            l_output(obj, server, pid);
+            l_output(obj, server, client, pid);
             printf("Message sent.\n");
             break;
         case OP_READ: {

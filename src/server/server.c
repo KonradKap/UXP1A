@@ -12,6 +12,7 @@
 #include "utility.h"
 #include "server/server.h"
 #include "tuple/tuple.h"
+#include "error.h"
 
 tuple * messages[MAX_MESSAGES];
 int current_m = 0;
@@ -71,12 +72,25 @@ void recive_message(mqd_t  server){
 
 		switch(command){
 			case OP_SEND:
+				if(current_m >= MAX_MESSAGES){
+					send_reply(pid_c, SERVER_E_OVERLOAD_MESSAGE_BUFFER);
+					continue;
+				}
 				add_tuple(message);
+				send_reply(pid_c, CORRECT_STATUS);
 				break;
 			case OP_READ:
+				if(current_item >= MAX_MESSAGES){
+					send_reply(pid_c, SERVER_E_OVERLOAD_CLIENT_QUEUE);
+					continue;
+				}
 				add_process(command, pid_c, message);
 				break;
 			case OP_GET:
+				if(current_item >= MAX_MESSAGES){
+					send_reply(pid_c, SERVER_E_OVERLOAD_CLIENT_QUEUE);
+					continue;
+				}
 				add_process(command, pid_c, message);
 				break;
 			default:
@@ -223,6 +237,25 @@ void close_server(mqd_t server, char * server_queue_name){
     if (mq_unlink (server_queue_name) == -1) {
         perror ("Client: mq_unlink");
         exit (1);
+    }
+}
+
+void send_reply(pid_t c_pid, int reply){
+	mqd_t client;
+
+	char client_name[CLIENT_NAME_SIZE];
+	char out_buffer[MAX_MSG_SIZE];
+	sprintf (client_name, "/%d", c_pid);
+	printf("Sending  reply: %d \n", reply);
+	*((uint8_t *)out_buffer) = reply;
+	
+	client = mq_open (client_name, O_WRONLY);
+
+    if (client == -1) {
+        perror ("Server: Not able to open client queue");
+    }
+    if (mq_send (client, out_buffer, MAX_MSG_SIZE, 0) == -1) {
+        perror ("Server: Not able to send message to client");
     }
 }
 

@@ -7,6 +7,23 @@
 #define IGNORED(a) ((void)(a))
 #define PTR_SIZE (sizeof(void *))
 
+#define SERVER_QUEUE_NAME "/Linda-Server"
+#define CLIENT_NAME_SIZE 64 
+#define QUEUE_PERMISSIONS 0660 
+#define MAX_MESSAGES 10 
+#define MAX_MSG_SIZE 256
+#define PID_SIZEOF sizeof(pid_t)
+#define PID 1
+#define UINT_SIZEOF sizeof(uint8_t)
+#define COMMAND 1
+#define STATUS 1
+
+#define INCORRECT_STATUS -1
+#define CORRECT_STATUS 0x0
+#define OP_SEND 0x1
+#define OP_READ 0x2
+#define OP_GET 0x4
+ 
 typedef struct tuple tuple;
 
 int string_to_int(char *buffer, int *output);
