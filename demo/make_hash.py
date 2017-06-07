@@ -6,10 +6,8 @@ import hashlib
 
 def get_hash_from_output(raw_msg):
 	msg = raw_msg.decode()
-	print(msg)
 	response_beg = msg[50:].find("s:")
 	response = msg[12+response_beg:-3]
-	print(response)
 	return response
 
 def main():
@@ -25,7 +23,6 @@ def main():
 				return False
 
 		for integer in requested_ints:
-			print("stopping on",integer)
 			p = Popen(['./client', 'get', '-n', '2', '-i', 'eq', str(integer), '-s', 'any'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 			output, err = p.communicate()
 			if err != b"":
@@ -33,7 +30,7 @@ def main():
 				break
 			else:
 				h_out = get_hash_from_output(output)
-				print("Calculated hash is",h_out)
+				print("Calculated hash for",integer,"is",h_out)
 
 
 if __name__ == "__main__":
