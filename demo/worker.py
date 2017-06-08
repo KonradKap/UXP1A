@@ -6,13 +6,13 @@ import hashlib
 import multiprocessing as mp
 
 def calc_hash(msg):
-	time.sleep(1)
+	time.sleep(3)
 	calc_out =  hashlib.sha224(str(msg).encode()).hexdigest()
 	print("Calculated hash for",msg,":", calc_out)
 	return calc_out
 
 def get_int_from_output(raw_msg):
-	return raw_msg.decode()[62:-3]
+	return raw_msg.decode()[62:-23]
 
 def process_request(msg):
 	req_int = get_int_from_output(msg)
